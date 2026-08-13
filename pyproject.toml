@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dataviz"
+version = "0.1.0"
+description = "Automated data visualization CLI powered by an LLM pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "DataViz Contributors" }
+]
+
+[project.scripts]
+dataviz = "dataviz.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["dataviz"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

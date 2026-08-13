@@ -1,0 +1,94 @@
+{
+  "$schema": "../../../specs/dashboard-template-schema.json",
+  "name": "default",
+  "description": "Default dashboard layout used when no template is provided.",
+  "version": "1.0.0",
+  "layout": "single_column",
+  "theme": "light",
+  "sections": [
+    {
+      "id": "summary",
+      "title": "Dataset Overview",
+      "type": "text",
+      "required": true,
+      "description": "High-level narrative about the dataset."
+    },
+    {
+      "id": "schema",
+      "title": "Schema & Column Types",
+      "type": "table",
+      "required": true,
+      "description": "Column names, inferred types, null counts, and unique counts."
+    },
+    {
+      "id": "stats",
+      "title": "Descriptive Statistics",
+      "type": "table",
+      "required": true,
+      "description": "Full-data descriptive statistics for numeric columns."
+    },
+    {
+      "id": "nulls",
+      "title": "Missing Values",
+      "type": "chart",
+      "required": false,
+      "description": "Chart showing missing value patterns."
+    },
+    {
+      "id": "distributions",
+      "title": "Distributions",
+      "type": "chart_grid",
+      "required": true,
+      "description": "Distribution charts for numeric and categorical columns."
+    },
+    {
+      "id": "correlation",
+      "title": "Correlation Matrix",
+      "type": "chart",
+      "required": false,
+      "description": "Heatmap of numeric correlations."
+    },
+    {
+      "id": "outliers",
+      "title": "Outliers",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Boxplots for numeric columns with outliers."
+    },
+    {
+      "id": "timeseries",
+      "title": "Time Series",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Line charts for detected date columns."
+    },
+    {
+      "id": "charts",
+      "title": "Additional Charts",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Extra charts selected by the Viz Agent."
+    },
+    {
+      "id": "insights",
+      "title": "Key Insights",
+      "type": "text",
+      "required": true,
+      "description": "Narrative summary of the most important findings."
+    },
+    {
+      "id": "recommendations",
+      "title": "Recommendations",
+      "type": "text",
+      "required": false,
+      "description": "Optional next steps based on the analysis."
+    }
+  ],
+  "options": {
+    "show_section_numbers": true,
+    "show_generated_at": true,
+    "show_file_info": true,
+    "chart_height_px": 400,
+    "table_max_rows": 50
+  }
+}
