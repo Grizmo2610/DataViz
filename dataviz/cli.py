@@ -13,6 +13,9 @@ from dataviz.config import (
     update_provider_config,
 )
 from dataviz.agents.base import PipelineContext
+from dataviz.agents.orchestrator import Orchestrator
+from dataviz.exporters import get_exporter
+from dataviz.tools.join_tools import infer_join_key, join_files
 from dataviz.readers import MissingDependencyError, UnsupportedFormatError, get_reader
 from dataviz.session import list_sessions, open_session
 from dataviz.tool_gen import discard_pending_tools, list_pending_tools, run_pending_tools
@@ -303,7 +306,9 @@ def handle_main_command(args: argparse.Namespace) -> int:
     )
 
     print(format_config_summary(config))
-    for file_path in args.files:
+
+    if len(args.files) == 1:
+        file_path = args.files[0]
         try:
             reader = get_reader(file_path, sheet_name=args.sheet)
             sample = reader.read_sample(file_path, n_rows=20)
@@ -319,9 +324,23 @@ def handle_main_command(args: argparse.Namespace) -> int:
         except MissingDependencyError as exc:
             print(f"\nFile: {file_path}")
             print(f"Error: {exc}")
-
-    if len(args.files) > 1:
-        print("\nMulti-file analysis is not implemented yet.")
+    else:
+        try:
+            frames = [get_reader(file_path, sheet_name=args.sheet).read_sample(file_path, n_rows=10_000) for file_path in args.files]
+            join_key = args.join_on or infer_join_key(frames)
+            if join_key is None:
+                print("\nUnable to infer a join key. Use --join-on.")
+                return 1
+            merged = join_files(args.files, join_on=join_key, join_type=args.join_type or "inner", sheet_name=args.sheet)
+            print(f"\nMulti-file join key: {join_key}")
+            print(f"Merged rows: {len(merged)}")
+            print(f"Merged columns: {len(merged.columns)}")
+        except UnsupportedFormatError as exc:
+            print(f"\nError: {exc}")
+            return 1
+        except MissingDependencyError as exc:
+            print(f"\nError: {exc}")
+            return 1
 
     if should_launch_tui(args.no_tui):
         app = DatavizApp(
@@ -336,6 +355,18 @@ def handle_main_command(args: argparse.Namespace) -> int:
         print("\n" + app.dashboard().render())
     else:
         print("\nTUI skipped.")
+
+    exporter = get_exporter(config.get("output", "html"))
+    output_path = exporter.write(
+        [
+            exporter.render_section(
+                {"id": "summary", "title": "Summary"},
+                f"Analyzed {len(args.files)} file(s).",
+            )
+        ],
+        config.get("out_dir", "./dataviz_output"),
+    )
+    print(f"\nExported report: {output_path}")
     return 0
 
 

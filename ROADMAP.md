@@ -68,9 +68,12 @@ Definition of done:
 
 Branch: `phase-4-export`
 
-- [ ] Exporters
-- [ ] Multi-file join support
-- [ ] XLSX improvements
+- [x] Exporters
+- [x] Multi-file join support
+- [x] XLSX improvements
+
+Definition of done:
+- The export and multi-file test suite passes
 
 ## Phase 5 - Polish
 

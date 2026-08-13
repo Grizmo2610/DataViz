@@ -22,12 +22,17 @@ All notable changes to DataViz CLI will be documented here.
 - Screen models for dashboard, selector, preview, insight, and export views
 - Progress board and log panel components
 - CLI TUI launch gate and TUI rendering tests
+- Phase 4 exporter layer on `phase-4-export`
+- HTML, Markdown, PDF, and Notebook exporters
+- Multi-file join helper and XLSX sheet listing support
+- CLI export output path wiring and export tests
 
 ### Changed
 - `design/README.md` index updated to match the actual design file names
 - CLI default command now summarizes input files through the reader layer
 - `AGENT_RULE.md` removed in favor of `AGENTS.md`
 - CLI now renders a basic TUI dashboard summary when enabled
+- CLI now writes a report artifact for the selected output format
 
 ## Phase 0 - Repository Initialization
 

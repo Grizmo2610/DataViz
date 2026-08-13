@@ -67,6 +67,22 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(list(sample.columns), ["a", "b"])
         self.assertEqual(stats["sheet_name"], "First")
         self.assertEqual(stats["file_format"], "xlsx")
+        self.assertIn("available_sheets", stats)
+
+    def test_xlsx_reader_lists_sheets(self) -> None:
+        """XLSX reader should list available sheets."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.xlsx"
+            workbook = Workbook()
+            workbook.active.title = "First"
+            workbook.create_sheet("Second")
+            workbook.save(path)
+
+            reader = XlsxReader()
+            sheets = reader.list_sheets(path)
+
+        self.assertEqual(sheets, ["First", "Second"])
 
     def test_get_reader_rejects_unknown_extension(self) -> None:
         """Unsupported file extensions should raise a clear error."""

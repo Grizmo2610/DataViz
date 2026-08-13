@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from dataviz.exporters import get_exporter
+
 
 def write_summary(schema: dict[str, Any], stats: dict[str, Any], lang: str = "en") -> str:
     """Write a dataset summary narrative."""
@@ -36,6 +38,9 @@ def assemble_dashboard(
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
-    report_path = out_path / f"report.{ 'md' if output_format == 'md' else 'json' }"
-    report_path.write_text(json.dumps({"template": template_name, "lang": lang, "sections": sections}, indent=2) + "\n", encoding="utf-8")
-    return {"output_path": str(report_path), "sections_rendered": len(sections)}
+    exporter = get_exporter(output_format)
+    rendered_sections = []
+    for section_name, content in sections.items():
+        rendered_sections.append(exporter.render_section({"id": section_name, "title": section_name.title()}, content))
+    report_path = exporter.write(rendered_sections, out_path, template_name=template_name, lang=lang)
+    return {"output_path": str(report_path), "sections_rendered": len(rendered_sections)}

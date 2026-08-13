@@ -36,6 +36,19 @@ class XlsxReader(BaseReader):
             sheet_name = self.sheet_name or workbook.sheet_names[0]
             return workbook.parse(sheet_name=sheet_name, nrows=n_rows)
 
+    def list_sheets(self, file_path: str | Path) -> list[str]:
+        """Return available worksheet names.
+
+        Args:
+            file_path: Path to the Excel workbook.
+
+        Returns:
+            A list of worksheet names.
+        """
+
+        with pd.ExcelFile(file_path) as workbook:
+            return list(workbook.sheet_names)
+
     def read_full_stats(self, file_path: str | Path) -> dict[str, Any]:
         """Compute dataset statistics for the selected worksheet.
 
@@ -52,6 +65,7 @@ class XlsxReader(BaseReader):
         return {
             "file_format": "xlsx",
             "sheet_name": sheet_name,
+            "available_sheets": self.list_sheets(file_path),
             "row_count": int(len(frame)),
             "column_count": int(len(frame.columns)),
             "columns": _summarize_frame(frame),
