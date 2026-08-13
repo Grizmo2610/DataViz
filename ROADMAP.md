@@ -57,9 +57,12 @@ Definition of done:
 
 Branch: `phase-3-tui`
 
-- [ ] Textual app skeleton
-- [ ] Dashboard, chart selector, preview, insight, and export screens
-- [ ] Progress and log components
+- [x] Textual app skeleton
+- [x] Dashboard, chart selector, preview, insight, and export screens
+- [x] Progress and log components
+
+Definition of done:
+- The TUI screen models and launch gate pass the phase 3 tests
 
 ## Phase 4 - Export
 

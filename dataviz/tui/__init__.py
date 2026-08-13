@@ -1,3 +1,3 @@
-from dataviz.cli import main
+from .app import DatavizApp
 
-__all__ = ["main"]
+__all__ = ["DatavizApp"]

@@ -12,9 +12,26 @@ from dataviz.config import (
     load_config,
     update_provider_config,
 )
+from dataviz.agents.base import PipelineContext
 from dataviz.readers import MissingDependencyError, UnsupportedFormatError, get_reader
 from dataviz.session import list_sessions, open_session
 from dataviz.tool_gen import discard_pending_tools, list_pending_tools, run_pending_tools
+from dataviz.tui import DatavizApp
+
+
+def should_launch_tui(no_tui: bool) -> bool:
+    """Determine whether the TUI should launch.
+
+    Args:
+        no_tui: Whether the user disabled the TUI.
+
+    Returns:
+        True when the TUI can launch.
+    """
+
+    if no_tui:
+        return False
+    return sys.stdout.isatty()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -305,6 +322,20 @@ def handle_main_command(args: argparse.Namespace) -> int:
 
     if len(args.files) > 1:
         print("\nMulti-file analysis is not implemented yet.")
+
+    if should_launch_tui(args.no_tui):
+        app = DatavizApp(
+            context=PipelineContext(
+                file_paths=list(args.files),
+                output_format=config.get("output", "html"),
+                mode="deep" if args.deep else "default",
+                lang=config.get("lang", "auto"),
+                extra={"out_dir": config.get("out_dir", "./dataviz_output")},
+            )
+        )
+        print("\n" + app.dashboard().render())
+    else:
+        print("\nTUI skipped.")
     return 0
 
 

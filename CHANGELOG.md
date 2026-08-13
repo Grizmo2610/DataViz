@@ -18,11 +18,16 @@ All notable changes to DataViz CLI will be documented here.
 - Tool registry entries and built-in tool modules for reader, EDA, viz, and report stages
 - Orchestrator and concrete phase-2 agent classes
 - Tests covering registry, providers, tools, and orchestrator flow
+- Phase 3 TUI skeleton on `phase-3-tui`
+- Screen models for dashboard, selector, preview, insight, and export views
+- Progress board and log panel components
+- CLI TUI launch gate and TUI rendering tests
 
 ### Changed
 - `design/README.md` index updated to match the actual design file names
 - CLI default command now summarizes input files through the reader layer
 - `AGENT_RULE.md` removed in favor of `AGENTS.md`
+- CLI now renders a basic TUI dashboard summary when enabled
 
 ## Phase 0 - Repository Initialization
 
