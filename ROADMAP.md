@@ -79,6 +79,9 @@ Definition of done:
 
 Branch: `phase-5-pypi`
 
-- [ ] Documentation
-- [ ] Code quality cleanup
-- [ ] Packaging and publish flow
+- [x] Documentation
+- [x] Code quality cleanup
+- [x] Packaging and publish flow
+
+Definition of done:
+- The project has a complete tutorial README and release metadata

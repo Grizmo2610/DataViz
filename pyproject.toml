@@ -12,9 +12,20 @@ license = { text = "MIT" }
 authors = [
   { name = "DataViz Contributors" }
 ]
+keywords = ["dataviz", "cli", "eda", "visualization", "llm", "pandas", "textual"]
 dependencies = [
   "pandas>=2.0",
   "openpyxl>=3.1",
+]
+
+[project.urls]
+Homepage = "https://example.com/dataviz"
+Issues = "https://example.com/dataviz/issues"
+Repository = "https://example.com/dataviz"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
 ]
 
 [project.scripts]

@@ -26,6 +26,9 @@ All notable changes to DataViz CLI will be documented here.
 - HTML, Markdown, PDF, and Notebook exporters
 - Multi-file join helper and XLSX sheet listing support
 - CLI export output path wiring and export tests
+- Phase 5 polish on `phase-5-pypi`
+- Tutorial-style README with install and usage walkthrough
+- Release metadata in `pyproject.toml`
 
 ### Changed
 - `design/README.md` index updated to match the actual design file names
@@ -33,6 +36,7 @@ All notable changes to DataViz CLI will be documented here.
 - `AGENT_RULE.md` removed in favor of `AGENTS.md`
 - CLI now renders a basic TUI dashboard summary when enabled
 - CLI now writes a report artifact for the selected output format
+- README now documents the current CLI workflow and outputs
 
 ## Phase 0 - Repository Initialization
 
