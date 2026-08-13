@@ -1,0 +1,224 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dataviz.cli/schemas/config.json",
+  "title": "DataViz CLI Configuration",
+  "description": "Schema for ~/.config/dataviz/config.json and .dataviz/config.json",
+  "type": "object",
+  "properties": {
+    "default_provider": {
+      "type": "string",
+      "enum": ["claude", "openai", "openai_compatible", "gemini"],
+      "description": "The LLM provider used by default when no --provider flag is given."
+    },
+    "tool_gen_mode": {
+      "type": "string",
+      "enum": ["immediate", "deferred"],
+      "default": "deferred",
+      "description": "How the agent handles missing tools at runtime. 'immediate' generates and executes the tool on the spot. 'deferred' queues the request to pending_tools.json for later generation via dataviz tool-gen."
+    },
+    "lang": {
+      "type": "string",
+      "enum": ["en", "vi", "auto"],
+      "default": "auto",
+      "description": "Language for report output. 'auto' detects language from column names and data values."
+    },
+    "output": {
+      "type": "string",
+      "enum": ["html", "md", "pdf", "notebook"],
+      "default": "html",
+      "description": "Default export format when --output flag is not provided."
+    },
+    "out_dir": {
+      "type": "string",
+      "default": "./dataviz_output",
+      "description": "Default output directory for generated reports and charts."
+    },
+    "providers": {
+      "type": "object",
+      "description": "API credentials and model settings for each supported LLM provider.",
+      "properties": {
+        "claude": {
+          "$ref": "#/definitions/provider_claude"
+        },
+        "openai": {
+          "$ref": "#/definitions/provider_openai"
+        },
+        "openai_compatible": {
+          "$ref": "#/definitions/provider_openai_compatible"
+        },
+        "gemini": {
+          "$ref": "#/definitions/provider_gemini"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "provider_claude": {
+      "type": "object",
+      "title": "Claude (Anthropic) provider config",
+      "required": ["api_key"],
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Anthropic API key. Starts with 'sk-ant-'.",
+          "minLength": 10
+        },
+        "model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "description": "Claude model identifier.",
+          "examples": ["claude-sonnet-4-6", "claude-opus-4-6"]
+        },
+        "max_tokens": {
+          "type": "integer",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 32768,
+          "description": "Maximum tokens per LLM response."
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 10,
+          "description": "Request timeout in seconds."
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_openai": {
+      "type": "object",
+      "title": "OpenAI provider config",
+      "required": ["api_key"],
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "OpenAI API key. Starts with 'sk-'.",
+          "minLength": 10
+        },
+        "model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "OpenAI model identifier.",
+          "examples": ["gpt-4o", "gpt-4-turbo", "gpt-4o-mini"]
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri",
+          "default": "https://api.openai.com/v1",
+          "description": "OpenAI API base URL."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 32768,
+          "description": "Maximum tokens per LLM response."
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 10,
+          "description": "Request timeout in seconds."
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_openai_compatible": {
+      "type": "object",
+      "title": "OpenAI-compatible provider config (Azure, Groq, Together, etc.)",
+      "required": ["api_key", "base_url"],
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "API key for the compatible provider.",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier as required by the provider.",
+          "examples": ["llama-3-70b-8192", "mixtral-8x7b-32768"]
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL of the OpenAI-compatible API endpoint.",
+          "examples": [
+            "https://api.groq.com/openai/v1",
+            "https://api.together.xyz/v1",
+            "https://myresource.openai.azure.com/"
+          ]
+        },
+        "max_tokens": {
+          "type": "integer",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 32768,
+          "description": "Maximum tokens per LLM response."
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 10,
+          "description": "Request timeout in seconds."
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_gemini": {
+      "type": "object",
+      "title": "Google Gemini provider config",
+      "required": ["api_key"],
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Google AI Studio API key. Starts with 'AIza'.",
+          "minLength": 10
+        },
+        "model": {
+          "type": "string",
+          "default": "gemini-1.5-pro",
+          "description": "Gemini model identifier.",
+          "examples": ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]
+        },
+        "max_tokens": {
+          "type": "integer",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 32768,
+          "description": "Maximum tokens per LLM response."
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 10,
+          "description": "Request timeout in seconds."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "default_provider": "claude",
+      "tool_gen_mode": "deferred",
+      "lang": "auto",
+      "output": "html",
+      "out_dir": "./dataviz_output",
+      "providers": {
+        "claude": {
+          "api_key": "sk-ant-...",
+          "model": "claude-sonnet-4-6",
+          "max_tokens": 4096,
+          "timeout": 120
+        },
+        "openai": {
+          "api_key": "sk-...",
+          "model": "gpt-4o",
+          "base_url": "https://api.openai.com/v1"
+        }
+      }
+    }
+  ]
+}

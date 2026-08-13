@@ -1,0 +1,107 @@
+{
+  "$schema": "../specs/dashboard-template-schema.json",
+  "name": "default",
+  "description": "Default dashboard layout. Used when no --template flag is provided.",
+  "version": "1.0.0",
+  "layout": "single_column",
+  "theme": "light",
+  "sections": [
+    {
+      "id": "summary",
+      "title": "Dataset Overview",
+      "type": "text",
+      "required": true,
+      "description": "High-level narrative about the dataset: what it contains, how many rows and columns, and general data quality."
+    },
+    {
+      "id": "schema",
+      "title": "Schema & Column Types",
+      "type": "table",
+      "required": true,
+      "description": "Table listing each column name, inferred data type, null count, and unique value count.",
+      "columns": ["column", "dtype", "null_count", "null_pct", "unique_count"]
+    },
+    {
+      "id": "stats",
+      "title": "Descriptive Statistics",
+      "type": "table",
+      "required": true,
+      "description": "Full-data descriptive stats for numeric columns: count, mean, std, min, 25%, 50%, 75%, max.",
+      "columns": ["column", "count", "mean", "std", "min", "p25", "p50", "p75", "max"]
+    },
+    {
+      "id": "nulls",
+      "title": "Missing Values",
+      "type": "chart",
+      "required": false,
+      "description": "Bar or heatmap showing null percentage per column. Skipped if dataset has no nulls.",
+      "chart_hint": "missing_heatmap"
+    },
+    {
+      "id": "distributions",
+      "title": "Distributions",
+      "type": "chart_grid",
+      "required": true,
+      "description": "Histogram or bar chart for each column. Numeric columns get histograms, categorical columns get bar charts.",
+      "chart_hint": "histogram_or_bar",
+      "max_charts": 12
+    },
+    {
+      "id": "correlation",
+      "title": "Correlation Matrix",
+      "type": "chart",
+      "required": false,
+      "description": "Heatmap of Pearson or Spearman correlation between numeric columns. Skipped if fewer than 2 numeric columns.",
+      "chart_hint": "heatmap",
+      "min_numeric_cols": 2
+    },
+    {
+      "id": "outliers",
+      "title": "Outliers",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Boxplot per numeric column to surface outliers detected via IQR. Skipped if no outliers found.",
+      "chart_hint": "boxplot",
+      "max_charts": 6
+    },
+    {
+      "id": "timeseries",
+      "title": "Time Series",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Line charts for numeric columns plotted against detected date columns. Skipped if no date column is found.",
+      "chart_hint": "line",
+      "max_charts": 4
+    },
+    {
+      "id": "charts",
+      "title": "Additional Charts",
+      "type": "chart_grid",
+      "required": false,
+      "description": "Any extra charts the Viz Agent selects based on data characteristics (scatter, pie, violin, pairplot, etc.).",
+      "chart_hint": "auto",
+      "max_charts": 8
+    },
+    {
+      "id": "insights",
+      "title": "Key Insights",
+      "type": "text",
+      "required": true,
+      "description": "Narrative summary of the most important findings: trends, anomalies, dominant categories, notable correlations."
+    },
+    {
+      "id": "recommendations",
+      "title": "Recommendations",
+      "type": "text",
+      "required": false,
+      "description": "Optional next steps suggested by the Report Agent based on the insights (e.g. further analysis, data cleaning, modeling ideas)."
+    }
+  ],
+  "options": {
+    "show_section_numbers": true,
+    "show_generated_at": true,
+    "show_file_info": true,
+    "chart_height_px": 400,
+    "table_max_rows": 50
+  }
+}

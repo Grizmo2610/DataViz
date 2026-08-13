@@ -1,0 +1,204 @@
+{
+  "tools": [
+    {
+      "name": "read_sample",
+      "module": "dataviz.tools.reader_tools",
+      "description": "Read the first N rows of a file for schema inspection.",
+      "agent": "reader",
+      "args": ["file_path", "n_rows"],
+      "generated": false
+    },
+    {
+      "name": "detect_schema",
+      "module": "dataviz.tools.reader_tools",
+      "description": "Infer column types, null counts, and unique value counts from a DataFrame.",
+      "agent": "reader",
+      "args": ["df"],
+      "generated": false
+    },
+    {
+      "name": "decide_read_more",
+      "module": "dataviz.tools.reader_tools",
+      "description": "Determine whether the current sample is sufficient to understand the data schema.",
+      "agent": "reader",
+      "args": ["schema_info"],
+      "generated": false
+    },
+    {
+      "name": "read_full_stats",
+      "module": "dataviz.tools.reader_tools",
+      "description": "Compute aggregate statistics over the full file using chunked or lazy reading.",
+      "agent": "reader",
+      "args": ["file_path"],
+      "generated": false
+    },
+    {
+      "name": "compute_descriptive_stats",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Compute mean, std, min, max, and percentiles for all numeric columns.",
+      "agent": "eda",
+      "args": ["file_path"],
+      "generated": false
+    },
+    {
+      "name": "detect_nulls",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Compute null count and null percentage per column across the full file.",
+      "agent": "eda",
+      "args": ["file_path"],
+      "generated": false
+    },
+    {
+      "name": "detect_outliers",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Detect outliers in numeric columns using IQR and z-score methods.",
+      "agent": "eda",
+      "args": ["df"],
+      "generated": false
+    },
+    {
+      "name": "compute_correlation",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Compute Pearson or Spearman correlation matrix for numeric columns.",
+      "agent": "eda",
+      "args": ["file_path", "method"],
+      "generated": false
+    },
+    {
+      "name": "detect_time_series",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Detect datetime columns and compute trends or seasonality patterns.",
+      "agent": "eda",
+      "args": ["df"],
+      "generated": false
+    },
+    {
+      "name": "detect_categorical_distributions",
+      "module": "dataviz.tools.eda_tools",
+      "description": "Compute value counts and frequency distribution for categorical columns.",
+      "agent": "eda",
+      "args": ["df"],
+      "generated": false
+    },
+    {
+      "name": "auto_select_charts",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Use AI to select the most appropriate chart types for this dataset based on schema and EDA results.",
+      "agent": "viz",
+      "args": ["schema", "stats", "mode"],
+      "generated": false
+    },
+    {
+      "name": "plot_histogram",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot distribution histogram of a numeric column.",
+      "agent": "viz",
+      "args": ["col", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_bar",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot bar chart for categorical comparisons.",
+      "agent": "viz",
+      "args": ["x", "y", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_line",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot line chart for trends over time or ordered categories.",
+      "agent": "viz",
+      "args": ["x", "y", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_scatter",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot scatter chart to visualize correlation between two numeric columns.",
+      "agent": "viz",
+      "args": ["x", "y", "hue", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_heatmap",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot correlation heatmap from a correlation matrix.",
+      "agent": "viz",
+      "args": ["corr_matrix", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_boxplot",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot boxplot to visualize outliers and distribution spread.",
+      "agent": "viz",
+      "args": ["col", "group_by", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_pie",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot pie chart showing proportion of categories in a column.",
+      "agent": "viz",
+      "args": ["col", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_missing_heatmap",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot heatmap showing null/missing value patterns across columns.",
+      "agent": "viz",
+      "args": ["df", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_pairplot",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot pairwise scatter matrix for a set of numeric columns.",
+      "agent": "viz",
+      "args": ["cols", "engine"],
+      "generated": false
+    },
+    {
+      "name": "plot_violin",
+      "module": "dataviz.tools.viz_tools",
+      "description": "Plot violin chart showing distribution and density of a numeric column.",
+      "agent": "viz",
+      "args": ["col", "group_by", "engine"],
+      "generated": false
+    },
+    {
+      "name": "write_summary",
+      "module": "dataviz.tools.report_tools",
+      "description": "Generate a prose narrative overview of the dataset based on schema and statistics.",
+      "agent": "report",
+      "args": ["schema", "stats", "lang"],
+      "generated": false
+    },
+    {
+      "name": "write_insights",
+      "module": "dataviz.tools.report_tools",
+      "description": "Generate key findings narrative covering trends, anomalies, and distributions.",
+      "agent": "report",
+      "args": ["stats", "charts", "lang"],
+      "generated": false
+    },
+    {
+      "name": "write_recommendations",
+      "module": "dataviz.tools.report_tools",
+      "description": "Generate optional actionable recommendations based on the insights.",
+      "agent": "report",
+      "args": ["insights", "lang"],
+      "generated": false
+    },
+    {
+      "name": "assemble_dashboard",
+      "module": "dataviz.tools.report_tools",
+      "description": "Assemble all sections into the final output file using the specified template and format.",
+      "agent": "report",
+      "args": ["sections", "template_name", "output_format", "out_dir", "lang"],
+      "generated": false
+    }
+  ]
+}
