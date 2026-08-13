@@ -24,4 +24,3 @@ These rules apply to agents working on this repository.
 
 - Update `ROADMAP.md` and `CHANGELOG.md` when a phase changes state.
 - Keep JSON config files in plain JSON only.
-

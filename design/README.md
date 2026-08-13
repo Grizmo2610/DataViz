@@ -25,7 +25,6 @@
 | [`specs/registry.json`](./specs/registry.json) | Tool registry JSON mẫu đầy đủ |
 | [`specs/default-template.json`](./specs/default-template.json) | Dashboard template mặc định |
 | [`specs/config-schema.json`](./specs/config-schema.json) | Config JSON schema |
-| [`templates/AGENT_RULE.md`](./templates/AGENT_RULE.md) | Agent rule template |
 | [`templates/CHANGELOG.md`](./templates/CHANGELOG.md) | Changelog template |
 | [`templates/CONTRIBUTING.md`](./templates/CONTRIBUTING.md) | Contributing guide template |
 

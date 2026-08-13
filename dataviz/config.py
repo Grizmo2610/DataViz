@@ -87,13 +87,39 @@ def load_config(cli_overrides: dict[str, Any] | None = None, base_dir: Path | No
     """
 
     merged: dict[str, Any] = dict(BUILT_IN_DEFAULTS)
-    merged.update(read_json_file(get_global_config_path()))
-    merged.update(read_json_file(get_local_config_path(base_dir)))
+    merged.update(_merge_config_layer(read_json_file(get_global_config_path()), merged))
+    merged.update(_merge_config_layer(read_json_file(get_local_config_path(base_dir)), merged))
 
     for key, value in (cli_overrides or {}).items():
         if value is not None:
             merged[key] = value
 
+    return merged
+
+
+def _merge_config_layer(layer: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    """Merge a config layer into the current config.
+
+    Args:
+        layer: The config values from one file layer.
+        current: The accumulated config values.
+
+    Returns:
+        A merged dictionary with provider settings combined per provider.
+    """
+
+    merged = dict(current)
+    for key, value in layer.items():
+        if key != "providers":
+            merged[key] = value
+            continue
+
+        providers = dict(current.get("providers", {}))
+        for provider_name, provider_config in value.items():
+            existing = dict(providers.get(provider_name, {}))
+            existing.update(provider_config)
+            providers[provider_name] = existing
+        merged["providers"] = providers
     return merged
 
 

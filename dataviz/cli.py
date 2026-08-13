@@ -10,9 +10,9 @@ from dataviz.cache import clear_cache
 from dataviz.config import (
     format_config_summary,
     load_config,
-    save_global_config,
     update_provider_config,
 )
+from dataviz.readers import MissingDependencyError, UnsupportedFormatError, get_reader
 from dataviz.session import list_sessions, open_session
 from dataviz.tool_gen import discard_pending_tools, list_pending_tools, run_pending_tools
 
@@ -284,9 +284,27 @@ def handle_main_command(args: argparse.Namespace) -> int:
             "no_tui": args.no_tui,
         }
     )
-    print("Phase 0 skeleton: analysis pipeline is not implemented yet.")
-    print(f"Files: {', '.join(args.files)}")
+
     print(format_config_summary(config))
+    for file_path in args.files:
+        try:
+            reader = get_reader(file_path, sheet_name=args.sheet)
+            sample = reader.read_sample(file_path, n_rows=20)
+            stats = reader.read_full_stats(file_path)
+            print(f"\nFile: {file_path}")
+            print(f"Sample rows: {len(sample)}")
+            print(f"Columns: {len(sample.columns)}")
+            print(f"Full rows: {stats.get('row_count', 0)}")
+            print(f"Read strategy: {stats.get('read_strategy', 'full')}")
+        except UnsupportedFormatError as exc:
+            print(f"\nFile: {file_path}")
+            print(f"Error: {exc}")
+        except MissingDependencyError as exc:
+            print(f"\nFile: {file_path}")
+            print(f"Error: {exc}")
+
+    if len(args.files) > 1:
+        print("\nMulti-file analysis is not implemented yet.")
     return 0
 
 

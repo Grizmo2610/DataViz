@@ -10,13 +10,17 @@ All notable changes to DataViz CLI will be documented here.
 - Core config, cache, session, and tool registry helpers
 - Abstract base classes for agents, providers, readers, and exporters
 - Phase 0 docs and dashboard template assets
+- Phase 1 core pipeline branch on `phase-1-core-pipeline`
+- CSV, XLSX, and Parquet reader implementations
+- Core configuration merge logic with provider-level overrides
+- Unit tests covering config, readers, cache, session, and CLI help
 
 ### Changed
 - `design/README.md` index updated to match the actual design file names
+- CLI default command now summarizes input files through the reader layer
 
 ## Phase 0 - Repository Initialization
 
 ### Added
 - Project skeleton, docs, and template assets
 - Empty tool registry and dashboard template
-

@@ -27,14 +27,18 @@ Definition of done:
 
 Branch: `phase-1-core-pipeline`
 
-- [ ] CLI entry point with Typer
-- [ ] Config set, update, and show commands
-- [ ] Config resolution by field
-- [ ] Reader base classes and file readers
-- [ ] Cache system
-- [ ] Session system
-- [ ] Cache and session subcommands
-- [ ] Unit tests for config, readers, cache, and session
+- [x] CLI entry point with subcommands and help output
+- [x] Config set, update, and show commands
+- [x] Config resolution by field
+- [x] Reader base classes and file readers
+- [x] Cache system
+- [x] Session system
+- [x] Cache and session subcommands
+- [x] Unit tests for config, readers, cache, and session
+
+Definition of done:
+- `python -m dataviz --help` runs without crashing
+- Unit tests for the core pipeline pass
 
 ## Phase 2 - Agents
 
