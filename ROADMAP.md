@@ -44,11 +44,14 @@ Definition of done:
 
 Branch: `phase-2-agents`
 
-- [ ] Provider layer
-- [ ] Tool system
-- [ ] Base agent classes
-- [ ] Reader, EDA, Viz, and Report agents
-- [ ] Orchestrator and retry logic
+- [x] Provider layer
+- [x] Tool system
+- [x] Base agent classes
+- [x] Reader, EDA, Viz, and Report agents
+- [x] Orchestrator and retry logic
+
+Definition of done:
+- The phase 2 test suite passes
 
 ## Phase 3 - TUI
 

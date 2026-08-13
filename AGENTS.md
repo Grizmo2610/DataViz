@@ -17,7 +17,7 @@ Read this file before reading anything else. These rules are non-negotiable.
 
 - Read `SPEC.md` (or the relevant spec file) before touching any code.
 - Read `ROADMAP.md` to understand which phase is active and what the current task scope is.
-- Read `AGENT_RULE.md` (this file) at the start of every session.
+- Read `AGENTS.md` at the start of every session.
 - Read the relevant existing source files in the area you will modify — do not assume their content.
 - Check `dataviz/tools/registry.json` before assuming a tool exists or does not exist.
 

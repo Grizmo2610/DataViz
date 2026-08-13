@@ -64,15 +64,16 @@ class BaseAgent(ABC):
             The agent result.
         """
 
-    def call_tool(self, tool_name: str, **kwargs: Any) -> Any:
+    def call_tool(self, tool_name: str, *args: Any, **kwargs: Any) -> Any:
         """Execute a registered tool.
 
         Args:
             tool_name: Name of the tool to execute.
+            *args: Positional tool arguments.
             **kwargs: Tool keyword arguments.
 
         Returns:
             The tool return value.
         """
 
-        return self.tool_registry.get(tool_name)(**kwargs)
+        return self.tool_registry.get(tool_name)(*args, **kwargs)
