@@ -2,7 +2,7 @@
 
 All notable changes to DataViz CLI will be documented here.
 
-## [Unreleased]
+## [0.1.0]-rc
 
 ### Added
 - Phase 0 repository skeleton on `phase-0-repo-initialization`
