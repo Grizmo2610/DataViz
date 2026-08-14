@@ -34,7 +34,7 @@ def get_read_strategy(file_path: str | Path) -> str:
         file_path: Path to the CSV file.
 
     Returns:
-        One of `full`, `chunked`, or `lazy`.
+        One of ``full``, ``chunked``, or ``lazy``.
     """
 
     size_mb = Path(file_path).stat().st_size / (1024 * 1024)
@@ -63,7 +63,13 @@ class CsvReader(BaseReader):
         return pd.read_csv(file_path, sep=delimiter, nrows=n_rows)
 
     def read_full_stats(self, file_path: str | Path) -> dict[str, Any]:
-        """Compute dataset statistics for a CSV file.
+        """Compute dataset statistics for a CSV file without loading it fully into RAM.
+
+        For files under 50 MB the file is read in one shot.  For larger files an
+        incremental pass accumulates per-column statistics (count, null count,
+        min/max/sum/sum-of-squares for numerics, unique-value sketch for
+        categoricals) chunk-by-chunk so peak memory stays proportional to chunk
+        size, not file size.
 
         Args:
             file_path: Path to the CSV file.
@@ -74,23 +80,123 @@ class CsvReader(BaseReader):
 
         delimiter = detect_csv_delimiter(file_path)
         strategy = get_read_strategy(file_path)
-        if strategy == "lazy":
-            chunks = pd.read_csv(file_path, sep=delimiter, chunksize=100_000)
-            frame = pd.concat(list(chunks), ignore_index=True)
-        elif strategy == "chunked":
-            chunks = pd.read_csv(file_path, sep=delimiter, chunksize=10_000)
-            frame = pd.concat(list(chunks), ignore_index=True)
-        else:
-            frame = pd.read_csv(file_path, sep=delimiter)
 
-        return _summarize_frame(frame, delimiter=delimiter, strategy=strategy)
+        if strategy == "full":
+            frame = pd.read_csv(file_path, sep=delimiter)
+            return _summarize_frame(frame, delimiter=delimiter, strategy=strategy)
+
+        # chunked / lazy — stream the file; never concat everything into memory
+        chunk_size = 10_000 if strategy == "chunked" else 100_000
+        accumulator: dict[str, _ColumnAccumulator] = {}
+        total_rows = 0
+        dtypes: dict[str, str] = {}
+
+        for chunk in pd.read_csv(file_path, sep=delimiter, chunksize=chunk_size):
+            total_rows += len(chunk)
+            for col in chunk.columns:
+                if col not in accumulator:
+                    accumulator[col] = _ColumnAccumulator()
+                    dtypes[col] = str(chunk[col].dtype)
+                accumulator[col].update(chunk[col])
+
+        columns: list[dict[str, Any]] = []
+        for col, acc in accumulator.items():
+            columns.append(acc.to_summary(col, dtypes[col]))
+
+        return {
+            "row_count": total_rows,
+            "column_count": len(accumulator),
+            "delimiter": delimiter,
+            "read_strategy": strategy,
+            "columns": columns,
+        }
+
+
+class _ColumnAccumulator:
+    """Accumulate per-column statistics incrementally across chunks."""
+
+    __slots__ = (
+        "_count",
+        "_null_count",
+        "_is_numeric",
+        "_min",
+        "_max",
+        "_sum",
+        "_sum_sq",
+        "_unique_sketch",
+    )
+
+    # Limit unique-value tracking to avoid unbounded RAM on high-cardinality cols
+    _UNIQUE_CAP = 50_000
+
+    def __init__(self) -> None:
+        self._count = 0
+        self._null_count = 0
+        self._is_numeric: bool | None = None
+        self._min: float | None = None
+        self._max: float | None = None
+        self._sum: float = 0.0
+        self._sum_sq: float = 0.0
+        self._unique_sketch: set[Any] | None = set()
+
+    def update(self, series: pd.Series) -> None:
+        """Incorporate one chunk's worth of data."""
+
+        self._count += len(series)
+        self._null_count += int(series.isna().sum())
+
+        if self._is_numeric is None:
+            self._is_numeric = pd.api.types.is_numeric_dtype(series)
+
+        if self._is_numeric:
+            valid = series.dropna()
+            if not valid.empty:
+                chunk_min = float(valid.min())
+                chunk_max = float(valid.max())
+                self._min = chunk_min if self._min is None else min(self._min, chunk_min)
+                self._max = chunk_max if self._max is None else max(self._max, chunk_max)
+                self._sum += float(valid.sum())
+                self._sum_sq += float((valid ** 2).sum())
+
+        # Track unique values up to the cap; beyond that stop counting
+        if self._unique_sketch is not None:
+            self._unique_sketch.update(series.dropna().tolist())
+            if len(self._unique_sketch) > self._UNIQUE_CAP:
+                self._unique_sketch = None  # too many — mark as unknown
+
+    def to_summary(self, name: str, dtype: str) -> dict[str, Any]:
+        """Return a serializable column summary."""
+
+        non_null = self._count - self._null_count
+        summary: dict[str, Any] = {
+            "name": name,
+            "dtype": dtype,
+            "null_count": self._null_count,
+            "unique_count": len(self._unique_sketch) if self._unique_sketch is not None else None,
+        }
+        if self._is_numeric and non_null > 0:
+            mean = self._sum / non_null
+            # population variance from sum-of-squares; convert to sample std
+            variance = (self._sum_sq / non_null) - mean ** 2
+            std = (max(variance, 0.0) ** 0.5) * ((non_null / (non_null - 1)) ** 0.5) if non_null > 1 else 0.0
+            summary.update(
+                {
+                    "min": self._min,
+                    "max": self._max,
+                    "mean": round(mean, 6),
+                    "std": round(std, 6),
+                }
+            )
+        return summary
 
 
 def _summarize_frame(frame: pd.DataFrame, delimiter: str, strategy: str) -> dict[str, Any]:
-    """Summarize a pandas DataFrame.
+    """Summarize a pandas DataFrame (used for small files read in one shot).
 
     Args:
         frame: DataFrame to summarize.
+        delimiter: Detected CSV delimiter.
+        strategy: Read strategy label.
 
     Returns:
         A serializable summary dictionary.

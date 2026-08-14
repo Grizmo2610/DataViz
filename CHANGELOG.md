@@ -29,6 +29,7 @@ All notable changes to DataViz CLI will be documented here.
 - Phase 5 polish on `phase-5-pypi`
 - Tutorial-style README with install and usage walkthrough
 - Release metadata in `pyproject.toml`
+- Detailed provider configuration guide in `docs/configuration.md`
 
 ### Changed
 - `design/README.md` index updated to match the actual design file names
@@ -37,6 +38,7 @@ All notable changes to DataViz CLI will be documented here.
 - CLI now renders a basic TUI dashboard summary when enabled
 - CLI now writes a report artifact for the selected output format
 - README now documents the current CLI workflow and outputs
+- README now links to the dedicated configuration guide
 
 ## Phase 0 - Repository Initialization
 

@@ -21,6 +21,8 @@ from dataviz.session import list_sessions, open_session
 from dataviz.tool_gen import discard_pending_tools, list_pending_tools, run_pending_tools
 from dataviz.tui import DatavizApp
 
+SUBCOMMAND_ROOTS = {"config", "session", "cache", "tool-gen"}
+
 
 def should_launch_tui(no_tui: bool) -> bool:
     """Determine whether the TUI should launch.
@@ -67,6 +69,33 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-tui", action="store_true", help="Skip the TUI.")
     parser.add_argument("--template", default=None, help="Dashboard template name.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+
+    add_subcommand_parsers(parser)
+
+    return parser
+
+
+def build_subcommand_parser() -> argparse.ArgumentParser:
+    """Build a parser for command-style subcommands only.
+
+    Returns:
+        A parser that accepts config/session/cache/tool-gen subcommands.
+    """
+
+    parser = argparse.ArgumentParser(
+        prog="dataviz",
+        description="Automated data visualization CLI.",
+    )
+    add_subcommand_parsers(parser)
+    return parser
+
+
+def add_subcommand_parsers(parser: argparse.ArgumentParser) -> None:
+    """Attach DataViz subcommand parsers to a parser.
+
+    Args:
+        parser: Parser that should receive the subcommands.
+    """
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -120,37 +149,27 @@ def build_parser() -> argparse.ArgumentParser:
     tool_gen_discard_parser.add_argument("--name", default=None, help="Optional request name.")
     tool_gen_discard_parser.set_defaults(handler=handle_tool_gen_discard)
 
-    return parser
-
 
 def handle_config_set(args: argparse.Namespace) -> int:
-    """Create or update provider config values.
+    """Create or update provider config values (used by both ``set`` and ``update`` sub-commands).
 
     Args:
-        args: Parsed config set arguments.
+        args: Parsed config arguments.  ``args.key`` may be ``None`` for the
+            ``update`` sub-command, in which case only the supplied fields are
+            changed.
 
     Returns:
         Process exit code.
     """
 
     update_provider_config(args.provider, api_key=args.key, model=args.model, base_url=args.base_url)
-    print(f"Saved config for provider '{args.provider}'.")
+    print(f"Config for provider '{args.provider}' saved.")
     return 0
 
 
-def handle_config_update(args: argparse.Namespace) -> int:
-    """Update provider config values without changing the command shape.
-
-    Args:
-        args: Parsed config update arguments.
-
-    Returns:
-        Process exit code.
-    """
-
-    update_provider_config(args.provider, api_key=args.key, model=args.model, base_url=args.base_url)
-    print(f"Updated config for provider '{args.provider}'.")
-    return 0
+# ``update`` is an alias so existing scripts that use ``dataviz config update``
+# continue to work without change.
+handle_config_update = handle_config_set
 
 
 def handle_config_show(args: argparse.Namespace) -> int:
@@ -274,99 +293,132 @@ def handle_tool_gen_discard(args: argparse.Namespace) -> int:
 def handle_main_command(args: argparse.Namespace) -> int:
     """Handle the default analysis command path.
 
+    Runs the full Orchestrator pipeline (Reader → EDA → Viz → Report) and
+    writes the report to disk.
+
     Args:
         args: Parsed command-line arguments.
 
     Returns:
         Process exit code.
     """
-
     if not args.files:
         return 0
 
     config = load_config(
         {
-            "output": args.output,
-            "out_dir": args.out_dir,
-            "lang": args.lang,
-            "focus": args.focus,
-            "provider": args.provider,
-            "model": args.model,
-            "session": args.session,
-            "template": args.template,
-            "join_on": args.join_on,
-            "join_type": args.join_type,
-            "sheet": args.sheet,
-            "fast": args.fast,
-            "deep": args.deep,
+            "output":     args.output,
+            "out_dir":    args.out_dir,
+            "lang":       args.lang,
+            "focus":      args.focus,
+            "provider":   args.provider,
+            "model":      args.model,
+            "session":    args.session,
+            "template":   args.template,
+            "join_on":    args.join_on,
+            "join_type":  args.join_type,
+            "sheet":      args.sheet,
+            "fast":       args.fast,
+            "deep":       args.deep,
             "interactive": args.interactive,
-            "no_cache": args.no_cache,
-            "no_tui": args.no_tui,
+            "no_cache":   args.no_cache,
+            "no_tui":     args.no_tui,
         }
     )
 
-    print(format_config_summary(config))
+    output_format = config.get("output", "html")
+    out_dir       = config.get("out_dir", "./dataviz_output")
+    lang          = config.get("lang", "auto")
+    mode          = "deep" if args.deep else ("fast" if args.fast else "default")
 
-    if len(args.files) == 1:
-        file_path = args.files[0]
+    # ── Resolve input: single file or multi-file join ────────────────────────
+    file_paths = list(args.files)
+
+    if len(file_paths) > 1:
         try:
-            reader = get_reader(file_path, sheet_name=args.sheet)
-            sample = reader.read_sample(file_path, n_rows=20)
-            stats = reader.read_full_stats(file_path)
-            print(f"\nFile: {file_path}")
-            print(f"Sample rows: {len(sample)}")
-            print(f"Columns: {len(sample.columns)}")
-            print(f"Full rows: {stats.get('row_count', 0)}")
-            print(f"Read strategy: {stats.get('read_strategy', 'full')}")
-        except UnsupportedFormatError as exc:
-            print(f"\nFile: {file_path}")
-            print(f"Error: {exc}")
-        except MissingDependencyError as exc:
-            print(f"\nFile: {file_path}")
-            print(f"Error: {exc}")
-    else:
-        try:
-            frames = [get_reader(file_path, sheet_name=args.sheet).read_sample(file_path, n_rows=10_000) for file_path in args.files]
+            frames   = [get_reader(fp, sheet_name=args.sheet).read_sample(fp, n_rows=500) for fp in file_paths]
             join_key = args.join_on or infer_join_key(frames)
             if join_key is None:
-                print("\nUnable to infer a join key. Use --join-on.")
+                print("Unable to infer a join key from shared columns. Use --join-on.")
                 return 1
-            merged = join_files(args.files, join_on=join_key, join_type=args.join_type or "inner", sheet_name=args.sheet)
-            print(f"\nMulti-file join key: {join_key}")
-            print(f"Merged rows: {len(merged)}")
-            print(f"Merged columns: {len(merged.columns)}")
-        except UnsupportedFormatError as exc:
-            print(f"\nError: {exc}")
-            return 1
-        except MissingDependencyError as exc:
-            print(f"\nError: {exc}")
+            print(f"Joining {len(file_paths)} files on '{join_key}' ({args.join_type or 'inner'}) …")
+            import tempfile, os
+            merged_df = join_files(
+                file_paths,
+                join_on=join_key,
+                join_type=args.join_type or "inner",
+                sheet_name=args.sheet,
+            )
+            # Write merged frame to a temp CSV so ReaderAgent can read it normally
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False)
+            merged_df.to_csv(tmp, index=False)
+            tmp.close()
+            file_paths = [tmp.name]
+            print(f"Merged: {len(merged_df):,} rows × {len(merged_df.columns)} columns")
+        except (UnsupportedFormatError, MissingDependencyError, KeyError) as exc:
+            print(f"Error: {exc}")
             return 1
 
-    if should_launch_tui(args.no_tui):
-        app = DatavizApp(
-            context=PipelineContext(
-                file_paths=list(args.files),
-                output_format=config.get("output", "html"),
-                mode="deep" if args.deep else "default",
-                lang=config.get("lang", "auto"),
-                extra={"out_dir": config.get("out_dir", "./dataviz_output")},
-            )
-        )
-        print("\n" + app.dashboard().render())
-    else:
-        print("\nTUI skipped.")
+    # ── Build provider (optional — graceful if no API key) ───────────────────
+    from dataviz.providers import get_provider
+    try:
+        provider = get_provider(config)
+    except Exception:  # noqa: BLE001
+        provider = None
 
-    exporter = get_exporter(config.get("output", "html"))
-    output_path = exporter.write(
-        [
-            exporter.render_section(
-                {"id": "summary", "title": "Summary"},
-                f"Analyzed {len(args.files)} file(s).",
-            )
-        ],
-        config.get("out_dir", "./dataviz_output"),
+    # ── Run Orchestrator pipeline ────────────────────────────────────────────
+    from dataviz.agents.orchestrator import Orchestrator
+    from dataviz.tools.loader import ToolRegistry
+
+    context = PipelineContext(
+        file_paths=file_paths,
+        output_format=output_format,
+        mode=mode,
+        focus=args.focus,
+        lang=lang,
+        extra={
+            "out_dir":    out_dir,
+            "sheet":      args.sheet,
+            "template":   args.template or "default",
+            "no_cache":   args.no_cache,
+        },
     )
-    print(f"\nExported report: {output_path}")
+
+    print(f"\nAnalyzing {args.files[0]!r}" + (f" (+{len(args.files)-1} more)" if len(args.files) > 1 else "") + " …")
+
+    try:
+        orch  = Orchestrator(provider=provider, tool_registry=ToolRegistry())
+        state = orch.run(context)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Pipeline error: {exc}")
+        import traceback; traceback.print_exc()
+        return 1
+
+    # ── Print brief terminal summary ─────────────────────────────────────────
+    reader_out  = state.results.get("reader", {})
+    report_out  = state.results.get("report", {})
+    viz_out     = state.results.get("viz", {})
+
+    n_rows    = state.context.extra.get("stats", {}).get("row_count", reader_out.get("sample_rows", "?"))
+    n_cols    = state.context.extra.get("schema", {}).get("column_count", "?")
+    n_charts  = len(viz_out.get("charts", []))
+    out_path  = report_out.get("report", {}).get("output_path", "?")
+
+    print(f"\n{'─'*50}")
+    print(f"  Rows      : {n_rows:,}" if isinstance(n_rows, int) else f"  Rows      : {n_rows}")
+    print(f"  Columns   : {n_cols}")
+    print(f"  Charts    : {n_charts}")
+    print(f"  Report    : {out_path}")
+    print(f"{'─'*50}\n")
+
+    # ── Optional TUI ─────────────────────────────────────────────────────────
+    if should_launch_tui(args.no_tui):
+        try:
+            app = DatavizApp(context=context)
+            print(app.dashboard().render())
+        except Exception:  # noqa: BLE001
+            pass
+
     return 0
 
 
@@ -380,8 +432,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         Process exit code.
     """
 
-    parser = build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    arg_list = list(argv) if argv is not None else sys.argv[1:]
+
+    # Route to the correct parser.
+    # Problem: argparse cannot distinguish positional file paths from subcommand
+    # names when both are positional.  The fix: if the first token is a known
+    # subcommand root, use the subcommand-only parser; otherwise collect any
+    # leading non-flag tokens as file paths ourselves before handing the rest
+    # to the main parser (which still has `files` for --help accuracy).
+    if arg_list and arg_list[0] in SUBCOMMAND_ROOTS:
+        parser = build_subcommand_parser()
+        args = parser.parse_args(arg_list)
+    else:
+        # Separate file arguments (anything before the first flag or subcommand)
+        # from the rest so argparse never sees them as a subcommand candidate.
+        pre_files: list[str] = []
+        rest: list[str] = []
+        collecting_files = True
+        for token in arg_list:
+            if collecting_files and not token.startswith("-") and token not in SUBCOMMAND_ROOTS:
+                pre_files.append(token)
+            else:
+                collecting_files = False
+                rest.append(token)
+
+        parser = build_parser()
+        # Parse without the leading file tokens so subparsers never see them
+        args = parser.parse_args(rest)
+        # Merge pre_files with any --files already parsed (there won't be any,
+        # but be defensive)
+        existing = list(getattr(args, "files", None) or [])
+        args.files = pre_files + existing
 
     handler = getattr(args, "handler", None)
     if handler is not None:

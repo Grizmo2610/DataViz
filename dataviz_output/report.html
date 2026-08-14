@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DataViz Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f8fc;
+      --surface: #ffffff;
+      --border: #e4e6f0;
+      --text-primary: #1a1a2e;
+      --text-secondary: #555770;
+      --text-muted: #9092a8;
+      --accent: #4361ee;
+      --accent-light: #eef0fd;
+      --radius: 10px;
+      --shadow: 0 1px 4px rgba(30,30,60,.06), 0 4px 16px rgba(30,30,60,.04);
+    }
+
+    body {
+      font-family: Inter, 'IBM Plex Sans', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      background: var(--bg);
+      color: var(--text-primary);
+      padding: 0 0 4rem;
+    }
+
+    /* ── Header ── */
+    .report-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 2.5rem 0 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .report-header .inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    .report-header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -.02em;
+    }
+    .report-header .subtitle {
+      color: var(--text-secondary);
+      margin-top: .35rem;
+      font-size: .95rem;
+    }
+    .report-header .meta {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .report-header .meta-item {
+      display: flex;
+      flex-direction: column;
+      background: var(--accent-light);
+      padding: .5rem 1rem;
+      border-radius: 6px;
+    }
+    .report-header .meta-item .label {
+      font-size: .75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--accent);
+    }
+    .report-header .meta-item .value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ── Main layout ── */
+    .report-body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* ── Section card ── */
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .section-card .card-header {
+      padding: 1.1rem 1.5rem .9rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-card .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -.01em;
+    }
+    .section-card .card-header .pill {
+      font-size: .7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: .2rem .55rem;
+      border-radius: 999px;
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+    .section-card .card-body {
+      padding: 1.25rem 1.5rem;
+    }
+
+    /* ── Summary text ── */
+    .summary-text {
+      color: var(--text-secondary);
+      font-size: .97rem;
+    }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: .85rem;
+    }
+    .stat-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+    }
+    .stat-item .stat-col {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: .4rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stat-item .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .8rem;
+      color: var(--text-secondary);
+      padding: .1rem 0;
+    }
+    .stat-item .stat-row .val {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Chart grid ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 1.25rem;
+    }
+    .chart-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .chart-card .chart-title {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: .65rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chart-card .vega-container {
+      width: 100%;
+      min-height: 260px;
+    }
+
+    /* ── Insights / recommendations ── */
+    .insights-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+    }
+    .insights-list li {
+      display: flex;
+      gap: .75rem;
+      font-size: .95rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+    .insights-list li::before {
+      content: "";
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: .55rem;
+    }
+
+    /* ── Schema table ── */
+    .schema-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    .schema-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      padding: .5rem .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .schema-table td {
+      padding: .55rem .75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .schema-table tr:last-child td { border-bottom: none; }
+    .schema-table td:first-child {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', 'Fira Mono', monospace;
+      font-size: .82rem;
+    }
+    .dtype-badge {
+      display: inline-block;
+      font-size: .72rem;
+      padding: .15rem .45rem;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-family: monospace;
+      color: var(--text-muted);
+    }
+
+    /* ── Null bar ── */
+    .null-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .null-bar {
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .null-bar-fill {
+      height: 100%;
+      background: #e63946;
+      border-radius: 3px;
+    }
+    .null-pct {
+      font-size: .78rem;
+      color: var(--text-muted);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Footer ── */
+    .report-footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: .82rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="inner">
+    <h1>DataViz Report</h1>
+    <p class="subtitle">Automated EDA report</p>
+    <div class="meta"><div class="meta-item"><span class="label">File</span><span class="value">sales.csv</span></div><div class="meta-item"><span class="label">Rows</span><span class="value">26</span></div><div class="meta-item"><span class="label">Columns</span><span class="value">14</span></div><div class="meta-item"><span class="label">Charts</span><span class="value">8</span></div></div>
+  </div>
+</header>
+
+<main class="report-body">
+  <div class="section-card">
+        <div class="card-header">
+          <h2>Overview</h2>
+          
+        </div><div class="card-body"><p class="summary-text">The dataset contains 26 rows and 14 columns (4 numeric, 0 categorical). Data completeness looks good — missing values are minimal.</p></div></div>
+<div class="section-card">
+        <div class="card-header">
+          <h2>Schema</h2>
+          <span class="pill">EDA</span>
+        </div><div class="card-body"><table class="schema-table"><thead><tr><th>Column</th><th>Type</th><th>Unique</th><th>Nulls</th></tr></thead><tbody><tr><td>sale_id</td><td><span class="dtype-badge">str</span></td><td>20</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>sale_date</td><td><span class="dtype-badge">str</span></td><td>19</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>customer_name</td><td><span class="dtype-badge">str</span></td><td>20</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>customer_email</td><td><span class="dtype-badge">str</span></td><td>19</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>product_name</td><td><span class="dtype-badge">str</span></td><td>7</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>category</td><td><span class="dtype-badge">str</span></td><td>3</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>quantity</td><td><span class="dtype-badge">int64</span></td><td>5</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>unit_price</td><td><span class="dtype-badge">int64</span></td><td>20</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>discount_percent</td><td><span class="dtype-badge">int64</span></td><td>5</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>total_amount</td><td><span class="dtype-badge">float64</span></td><td>20</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>salesperson</td><td><span class="dtype-badge">str</span></td><td>20</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>region</td><td><span class="dtype-badge">str</span></td><td>3</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>payment_method</td><td><span class="dtype-badge">str</span></td><td>4</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr><tr><td>sale_status</td><td><span class="dtype-badge">str</span></td><td>3</td><td><div class="null-bar-wrap"><div class="null-bar"><div class="null-bar-fill" style="width:0.0%"></div></div><span class="null-pct">0.0%</span></div></td></tr></tbody></table></div></div>
+<div class="section-card">
+        <div class="card-header">
+          <h2>Descriptive statistics</h2>
+          <span class="pill">EDA</span>
+        </div><div class="card-body"><div class="stats-grid"><div class="stat-item"><div class="stat-col">quantity</div><div class="stat-row"><span>min</span><span class="val">1</span></div><div class="stat-row"><span>mean</span><span class="val">3.269</span></div><div class="stat-row"><span>max</span><span class="val">5</span></div><div class="stat-row"><span>std</span><span class="val">1.485</span></div></div><div class="stat-item"><div class="stat-col">unit_price</div><div class="stat-row"><span>min</span><span class="val">7.202e+05</span></div><div class="stat-row"><span>mean</span><span class="val">1.483e+07</span></div><div class="stat-row"><span>max</span><span class="val">2.8e+07</span></div><div class="stat-row"><span>std</span><span class="val">8.591e+06</span></div></div><div class="stat-item"><div class="stat-col">discount_percent</div><div class="stat-row"><span>min</span><span class="val">0</span></div><div class="stat-row"><span>mean</span><span class="val">10.58</span></div><div class="stat-row"><span>max</span><span class="val">20</span></div><div class="stat-row"><span>std</span><span class="val">6.975</span></div></div><div class="stat-item"><div class="stat-col">total_amount</div><div class="stat-row"><span>min</span><span class="val">3.241e+06</span></div><div class="stat-row"><span>mean</span><span class="val">4.082e+07</span></div><div class="stat-row"><span>max</span><span class="val">1.19e+08</span></div><div class="stat-row"><span>std</span><span class="val">3.172e+07</span></div></div></div></div></div>
+<div class="section-card">
+        <div class="card-header">
+          <h2>Visualisations</h2>
+          <span class="pill">Viz</span>
+        </div><div class="card-body"><div class="charts-grid"><div class="chart-card"><div class="chart-title">Distribution of quantity</div><div id="vg_0" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">Distribution of unit_price</div><div id="vg_1" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">Distribution of discount_percent</div><div id="vg_2" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">Distribution of total_amount</div><div id="vg_3" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">unit_price vs quantity</div><div id="vg_4" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">discount_percent vs quantity</div><div id="vg_5" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">total_amount vs quantity</div><div id="vg_6" class="vega-container"></div></div><div class="chart-card"><div class="chart-title">Correlation matrix</div><div id="vg_7" class="vega-container"></div></div></div></div></div>
+<div class="section-card">
+        <div class="card-header">
+          <h2>Key insights</h2>
+          <span class="pill">Analysis</span>
+        </div><div class="card-body"><ul class="insights-list"><li>A correlation heatmap was generated — look for strongly correlated pairs (|r| > 0.7) that may indicate redundant features or multicollinearity.</li></ul></div></div>
+<div class="section-card">
+        <div class="card-header">
+          <h2>Recommendations</h2>
+          <span class="pill">Action</span>
+        </div><div class="card-body"><ul class="insights-list"><li>Review the correlation matrix and drop or combine highly correlated features (|r| > 0.85) to reduce multicollinearity.</li><li>Always validate findings on a held-out sample before drawing conclusions or sharing results with stakeholders.</li></ul></div></div>
+</main>
+
+<footer class="report-footer">
+  Generated by DataViz &mdash; 2026-08-14
+</footer>
+
+<script>
+vegaEmbed("#vg_0", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-9eab882cc1f957021d00b78f8ba56fc0"}, "datasets": {"data-9eab882cc1f957021d00b78f8ba56fc0": [{"quantity": 2}, {"quantity": 4}, {"quantity": 2}, {"quantity": 3}, {"quantity": 2}, {"quantity": 4}, {"quantity": 5}, {"quantity": 5}, {"quantity": 1}, {"quantity": 4}, {"quantity": 2}, {"quantity": 1}, {"quantity": 5}, {"quantity": 4}, {"quantity": 4}, {"quantity": 2}, {"quantity": 4}, {"quantity": 4}, {"quantity": 5}, {"quantity": 5}]}, "encoding": {"tooltip": [{"bin": {"maxbins": 40}, "field": "quantity", "type": "quantitative"}, {"aggregate": "count", "type": "quantitative"}], "x": {"bin": {"maxbins": 40}, "field": "quantity", "title": "quantity", "type": "quantitative"}, "y": {"aggregate": "count", "title": "Count", "type": "quantitative"}}, "mark": {"color": "#4361ee", "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2, "opacity": 0.75, "type": "bar"}, "title": "Distribution of quantity", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_1", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-2a765fe58b38c26e7edeee8d1e9a0caf"}, "datasets": {"data-2a765fe58b38c26e7edeee8d1e9a0caf": [{"unit_price": 11673641}, {"unit_price": 25345069}, {"unit_price": 16412450}, {"unit_price": 21947663}, {"unit_price": 8328823}, {"unit_price": 5183224}, {"unit_price": 13123661}, {"unit_price": 28002860}, {"unit_price": 21989985}, {"unit_price": 26507464}, {"unit_price": 18616352}, {"unit_price": 4031512}, {"unit_price": 9331714}, {"unit_price": 6976974}, {"unit_price": 20909749}, {"unit_price": 20086389}, {"unit_price": 22019033}, {"unit_price": 6474168}, {"unit_price": 11339329}, {"unit_price": 1307802}]}, "encoding": {"tooltip": [{"bin": {"maxbins": 40}, "field": "unit_price", "type": "quantitative"}, {"aggregate": "count", "type": "quantitative"}], "x": {"bin": {"maxbins": 40}, "field": "unit_price", "title": "unit_price", "type": "quantitative"}, "y": {"aggregate": "count", "title": "Count", "type": "quantitative"}}, "mark": {"color": "#4361ee", "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2, "opacity": 0.75, "type": "bar"}, "title": "Distribution of unit_price", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_2", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-1b7efadbaa0d09e380c7c562adcf2324"}, "datasets": {"data-1b7efadbaa0d09e380c7c562adcf2324": [{"discount_percent": 20}, {"discount_percent": 15}, {"discount_percent": 5}, {"discount_percent": 10}, {"discount_percent": 15}, {"discount_percent": 20}, {"discount_percent": 0}, {"discount_percent": 15}, {"discount_percent": 5}, {"discount_percent": 10}, {"discount_percent": 15}, {"discount_percent": 5}, {"discount_percent": 20}, {"discount_percent": 15}, {"discount_percent": 0}, {"discount_percent": 5}, {"discount_percent": 0}, {"discount_percent": 5}, {"discount_percent": 20}, {"discount_percent": 0}]}, "encoding": {"tooltip": [{"bin": {"maxbins": 40}, "field": "discount_percent", "type": "quantitative"}, {"aggregate": "count", "type": "quantitative"}], "x": {"bin": {"maxbins": 40}, "field": "discount_percent", "title": "discount_percent", "type": "quantitative"}, "y": {"aggregate": "count", "title": "Count", "type": "quantitative"}}, "mark": {"color": "#4361ee", "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2, "opacity": 0.75, "type": "bar"}, "title": "Distribution of discount_percent", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_3", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-4dbfc820158564f7a81ac7ec2654cbce"}, "datasets": {"data-4dbfc820158564f7a81ac7ec2654cbce": [{"total_amount": 18677826.0}, {"total_amount": 86173235.0}, {"total_amount": 31183655.0}, {"total_amount": 59258690.0}, {"total_amount": 14158999.0}, {"total_amount": 16586317.0}, {"total_amount": 65618305.0}, {"total_amount": 119012155.0}, {"total_amount": 20890486.0}, {"total_amount": 95426870.0}, {"total_amount": 31647798.0}, {"total_amount": 3829936.0}, {"total_amount": 37326856.0}, {"total_amount": 23721712.0}, {"total_amount": 83638996.0}, {"total_amount": 38164139.0}, {"total_amount": 88076132.0}, {"total_amount": 24601838.0}, {"total_amount": 45357316.0}, {"total_amount": 6539010.0}]}, "encoding": {"tooltip": [{"bin": {"maxbins": 40}, "field": "total_amount", "type": "quantitative"}, {"aggregate": "count", "type": "quantitative"}], "x": {"bin": {"maxbins": 40}, "field": "total_amount", "title": "total_amount", "type": "quantitative"}, "y": {"aggregate": "count", "title": "Count", "type": "quantitative"}}, "mark": {"color": "#4361ee", "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2, "opacity": 0.75, "type": "bar"}, "title": "Distribution of total_amount", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_4", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-614d9969ffadb033d80576c3c587cd04"}, "datasets": {"data-614d9969ffadb033d80576c3c587cd04": [{"quantity": 2, "unit_price": 11673641}, {"quantity": 4, "unit_price": 25345069}, {"quantity": 2, "unit_price": 16412450}, {"quantity": 3, "unit_price": 21947663}, {"quantity": 2, "unit_price": 8328823}, {"quantity": 4, "unit_price": 5183224}, {"quantity": 5, "unit_price": 13123661}, {"quantity": 5, "unit_price": 28002860}, {"quantity": 1, "unit_price": 21989985}, {"quantity": 4, "unit_price": 26507464}, {"quantity": 2, "unit_price": 18616352}, {"quantity": 1, "unit_price": 4031512}, {"quantity": 5, "unit_price": 9331714}, {"quantity": 4, "unit_price": 6976974}, {"quantity": 4, "unit_price": 20909749}, {"quantity": 2, "unit_price": 20086389}, {"quantity": 4, "unit_price": 22019033}, {"quantity": 4, "unit_price": 6474168}, {"quantity": 5, "unit_price": 11339329}, {"quantity": 5, "unit_price": 1307802}]}, "encoding": {"tooltip": [{"field": "quantity", "type": "quantitative"}, {"field": "unit_price", "type": "quantitative"}], "x": {"field": "quantity", "title": "quantity", "type": "quantitative"}, "y": {"field": "unit_price", "title": "unit_price", "type": "quantitative"}}, "mark": {"opacity": 0.65, "size": 50, "stroke": "#ffffff", "strokeWidth": 0.5, "type": "circle"}, "title": "unit_price vs quantity", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_5", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-16cdea72f62f2881273c2c3aff014b09"}, "datasets": {"data-16cdea72f62f2881273c2c3aff014b09": [{"discount_percent": 20, "quantity": 2}, {"discount_percent": 15, "quantity": 4}, {"discount_percent": 5, "quantity": 2}, {"discount_percent": 10, "quantity": 3}, {"discount_percent": 15, "quantity": 2}, {"discount_percent": 20, "quantity": 4}, {"discount_percent": 0, "quantity": 5}, {"discount_percent": 15, "quantity": 5}, {"discount_percent": 5, "quantity": 1}, {"discount_percent": 10, "quantity": 4}, {"discount_percent": 15, "quantity": 2}, {"discount_percent": 5, "quantity": 1}, {"discount_percent": 20, "quantity": 5}, {"discount_percent": 15, "quantity": 4}, {"discount_percent": 0, "quantity": 4}, {"discount_percent": 5, "quantity": 2}, {"discount_percent": 0, "quantity": 4}, {"discount_percent": 5, "quantity": 4}, {"discount_percent": 20, "quantity": 5}, {"discount_percent": 0, "quantity": 5}]}, "encoding": {"tooltip": [{"field": "quantity", "type": "quantitative"}, {"field": "discount_percent", "type": "quantitative"}], "x": {"field": "quantity", "title": "quantity", "type": "quantitative"}, "y": {"field": "discount_percent", "title": "discount_percent", "type": "quantitative"}}, "mark": {"opacity": 0.65, "size": 50, "stroke": "#ffffff", "strokeWidth": 0.5, "type": "circle"}, "title": "discount_percent vs quantity", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_6", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-8da6cd2e5a846917fc4f7bc5e93f7e70"}, "datasets": {"data-8da6cd2e5a846917fc4f7bc5e93f7e70": [{"quantity": 2, "total_amount": 18677826.0}, {"quantity": 4, "total_amount": 86173235.0}, {"quantity": 2, "total_amount": 31183655.0}, {"quantity": 3, "total_amount": 59258690.0}, {"quantity": 2, "total_amount": 14158999.0}, {"quantity": 4, "total_amount": 16586317.0}, {"quantity": 5, "total_amount": 65618305.0}, {"quantity": 5, "total_amount": 119012155.0}, {"quantity": 1, "total_amount": 20890486.0}, {"quantity": 4, "total_amount": 95426870.0}, {"quantity": 2, "total_amount": 31647798.0}, {"quantity": 1, "total_amount": 3829936.0}, {"quantity": 5, "total_amount": 37326856.0}, {"quantity": 4, "total_amount": 23721712.0}, {"quantity": 4, "total_amount": 83638996.0}, {"quantity": 2, "total_amount": 38164139.0}, {"quantity": 4, "total_amount": 88076132.0}, {"quantity": 4, "total_amount": 24601838.0}, {"quantity": 5, "total_amount": 45357316.0}, {"quantity": 5, "total_amount": 6539010.0}]}, "encoding": {"tooltip": [{"field": "quantity", "type": "quantitative"}, {"field": "total_amount", "type": "quantitative"}], "x": {"field": "quantity", "title": "quantity", "type": "quantitative"}, "y": {"field": "total_amount", "title": "total_amount", "type": "quantitative"}}, "mark": {"opacity": 0.65, "size": 50, "stroke": "#ffffff", "strokeWidth": 0.5, "type": "circle"}, "title": "total_amount vs quantity", "width": "container", "height": 300}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+vegaEmbed("#vg_7", {"$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "config": {"background": "#ffffff", "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif", "title": {"fontSize": 14, "fontWeight": 600, "color": "#1a1a2e", "anchor": "start", "offset": 8}, "axis": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350", "gridColor": "#e8e8f0", "domainColor": "#c8c8d8", "tickColor": "#c8c8d8", "labelPadding": 6}, "legend": {"labelFontSize": 11, "titleFontSize": 12, "titleFontWeight": 500, "labelColor": "#555770", "titleColor": "#333350"}, "view": {"continuousHeight": 300, "continuousWidth": 300}, "range": {"category": ["#4361ee", "#e63946", "#2ec4b6", "#f4a261", "#7b2d8b", "#06a77d", "#e9c46a", "#264653"]}}, "data": {"name": "data-6e15259ffbf6e744d646454f38727f7d"}, "datasets": {"data-6e15259ffbf6e744d646454f38727f7d": [{"col_a": "quantity", "col_b": "quantity", "correlation": 1.0}, {"col_a": "unit_price", "col_b": "quantity", "correlation": -0.034}, {"col_a": "discount_percent", "col_b": "quantity", "correlation": 0.076}, {"col_a": "total_amount", "col_b": "quantity", "correlation": 0.474}, {"col_a": "quantity", "col_b": "unit_price", "correlation": -0.034}, {"col_a": "unit_price", "col_b": "unit_price", "correlation": 1.0}, {"col_a": "discount_percent", "col_b": "unit_price", "correlation": -0.092}, {"col_a": "total_amount", "col_b": "unit_price", "correlation": 0.812}, {"col_a": "quantity", "col_b": "discount_percent", "correlation": 0.076}, {"col_a": "unit_price", "col_b": "discount_percent", "correlation": -0.092}, {"col_a": "discount_percent", "col_b": "discount_percent", "correlation": 1.0}, {"col_a": "total_amount", "col_b": "discount_percent", "correlation": -0.101}, {"col_a": "quantity", "col_b": "total_amount", "correlation": 0.474}, {"col_a": "unit_price", "col_b": "total_amount", "correlation": 0.812}, {"col_a": "discount_percent", "col_b": "total_amount", "correlation": -0.101}, {"col_a": "total_amount", "col_b": "total_amount", "correlation": 1.0}]}, "height": 320, "layer": [{"encoding": {"color": {"field": "correlation", "scale": {"domain": [-1, 1], "scheme": "blueorange"}, "title": "r", "type": "quantitative"}, "tooltip": [{"field": "col_a", "title": "Column A", "type": "nominal"}, {"field": "col_b", "title": "Column B", "type": "nominal"}, {"field": "correlation", "format": ".3f", "title": "r", "type": "quantitative"}], "x": {"axis": {"labelAngle": -30}, "field": "col_a", "title": null, "type": "nominal"}, "y": {"field": "col_b", "title": null, "type": "nominal"}}, "mark": {"type": "rect"}, "title": "Correlation matrix"}, {"encoding": {"color": {"condition": {"test": "(datum.correlation > 0.5)", "value": "white"}, "value": "#1a1a2e"}, "text": {"field": "correlation", "format": ".2f", "type": "quantitative"}, "tooltip": [{"field": "col_a", "title": "Column A", "type": "nominal"}, {"field": "col_b", "title": "Column B", "type": "nominal"}, {"field": "correlation", "format": ".3f", "title": "r", "type": "quantitative"}], "x": {"axis": {"labelAngle": -30}, "field": "col_a", "title": null, "type": "nominal"}, "y": {"field": "col_b", "title": null, "type": "nominal"}}, "mark": {"fontSize": 10, "type": "text"}, "title": "Correlation matrix"}], "width": "container"}, {renderer:"svg",actions:{export:true,source:false,editor:false}});
+
+</script>
+
+</body>
+</html>

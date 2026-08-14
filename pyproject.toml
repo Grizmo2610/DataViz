@@ -16,6 +16,17 @@ keywords = ["dataviz", "cli", "eda", "visualization", "llm", "pandas", "textual"
 dependencies = [
   "pandas>=2.0",
   "openpyxl>=3.1",
+  # Charts (VizAgent)
+  "altair>=6.0",
+  "weasyprint>=60.0",
+  # Parquet support (ParquetReader)
+  "pyarrow>=14.0",
+  # TUI interface
+  "textual>=0.55",
+  # Interactive charts (VizAgent / viz_tools)
+  "plotly>=5.0",
+  # Notebook exporter
+  "nbformat>=5.9",
 ]
 
 [project.urls]

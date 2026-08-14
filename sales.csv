@@ -1,0 +1,27 @@
+﻿sale_id,sale_date,customer_name,customer_email,product_name,category,quantity,unit_price,discount_percent,total_amount,salesperson,region,payment_method,sale_status
+d84e321f-f99d-4f21-95b6-897f061b6c4e,2025-10-20,Hương Nguyễn,ple@example.com,Laptop,Computer,2,11673641,20,18677826.0,Chị Hồng Phạm,Central,Thẻ tín dụng,Completed
+b952dfbb-e2fb-47a7-ad27-385d4f3adf41,2026-06-05,Cô Kim Mai,john32@example.com,Bàn phím,Computer,4,25345069,15,86173235.0,Trung Lê,South,Thẻ tín dụng,Completed
+8262d7f6-e411-425f-9e92-7ffddb6bec59,2026-06-19,Quý cô An Trần,john16@example.com,Điện thoại,Computer,2,16412450,5,31183655.0,Phúc Trí Lê,North,Tiền mặt,Cancelled
+c825669b-dd7f-4a00-8770-3919afc456c1,2025-11-30,Kim Trí Phạm,john59@example.org,Bàn phím,Accessories,3,21947663,10,59258690.0,Kim Hoàng,South,Chuyển khoản,Pending
+841fe576-6b7b-4b58-a260-ba1b1acbf36c,2025-10-27,Hạnh Thế Đặng,jane81@example.net,Bàn phím,Electronics,2,8328823,15,14158999.0,Hoàng Văn Đặng,North,Ví điện tử,Cancelled
+55ab504d-106e-4aa6-941c-09962b38d482,2026-04-29,Anh Trọng Dương,johnvu@example.com,Máy tính bảng,Computer,4,5183224,20,16586317.0,Anh Bảo Đặng,North,Chuyển khoản,Completed
+fd033bc7-62ae-4eb4-99a0-445e458f723a,2026-05-02,Nhiên Bảo Phạm,johnduong@example.com,Máy tính bảng,Electronics,5,13123661,0,65618305.0,Khoa Phạm,South,Tiền mặt,Pending
+d820c8f1-2456-4768-8277-76fe4ad07d50,2026-07-10,Duyên Trần,johnduong@example.org,Laptop,Computer,5,28002860,15,119012155.0,Kim Phạm,North,Tiền mặt,Completed
+58efb517-bd32-4a80-8bcc-33cacc8711d6,2025-12-31,Minh Vũ,janebui@example.org,Điện thoại,Accessories,1,21989985,5,20890486.0,Hải Đặng,South,Thẻ tín dụng,Pending
+789c643a-31e4-4fe1-aaef-4320bf176721,2025-11-26,Nhật Thế Lê,johnvu@example.org,Điện thoại,Accessories,4,26507464,10,95426870.0,Khoa Trí Mai,North,Thẻ tín dụng,Pending
+be3dc56e-0831-4420-8e3d-7505a636bffe,2025-11-01,Hoàng Mai,johnvu@example.org,Màn hình,Computer,2,18616352,15,31647798.0,Cô Hải Nguyễn,South,Chuyển khoản,Completed
+8c5257d1-7ca5-49b4-88c0-c6327e0eab9f,2025-09-16,Bà Kim Đặng,qmai@example.org,Laptop,Electronics,1,4031512,5,3829936.0,Bảo Vũ,South,Chuyển khoản,Completed
+0a5c4817-c60c-4439-b06d-dbfcb9a72c6d,2025-08-18,Bà Kim Phạm,onguyen@example.net,Bàn phím,Computer,5,9331714,20,37326856.0,Cô Duyên Đặng,South,Tiền mặt,Completed
+fd979ba2-a8c9-4768-ab9a-734283ef56f9,2026-02-07,Nhật Thế Đặng,gle@example.org,Laptop,Electronics,4,6976974,15,23721712.0,Quý cô Hà Hoàng,South,Chuyển khoản,Cancelled
+41a59b41-f7f6-46c1-93a9-8fbe19b3a818,2025-12-31,Hải Hoàng,janemai@example.net,Laptop,Accessories,4,20909749,0,83638996.0,Cô Thảo Vũ,South,Ví điện tử,Cancelled
+a365e4c0-2978-466d-b022-f8ec22bdea60,2026-02-03,Nhiên Bảo Lê,johnvu@example.net,Màn hình,Accessories,2,20086389,5,38164139.0,Bà Khoa Nguyễn,South,Chuyển khoản,Cancelled
+6c084d04-87e8-4278-ab4c-26901e6dc761,2025-09-12,Phương Lê,vujane@example.com,Điện thoại,Accessories,4,22019033,0,88076132.0,Kim Trần,South,Ví điện tử,Completed
+08289fdb-926e-41bc-a526-46dbd5758eeb,2025-12-18,Bà Yến Vũ,janehoang@example.com,Chuột,Computer,4,6474168,5,24601838.0,Bác Trung Phạm,South,Chuyển khoản,Pending
+d46257e2-eb0f-4024-8339-a23e7be052a2,2026-05-31,Hải Mai Bảo Bùi,lejohn@example.net,Bàn phím,Accessories,5,11339329,20,45357316.0,Bà Thành Phạm,North,Chuyển khoản,Pending
+75bcc6ea-6a77-4a95-a775-1b55520eb9c0,2026-02-28,Trọng Văn Lê,jane14@example.com,Tai nghe,Computer,5,1307802,0,6539010.0,Quý cô An Phạm,Central,Thẻ tín dụng,Cancelled
+e479bf74-2c17-45be-bead-319df27a832f,2026-08-07,Nhật Dương,ntran@example.org,Tai nghe,Electronics,1,24548326,15,20866077.0,Thành Dương,South,Ví điện tử,Cancelled
+e3f2cce3-78bb-43eb-8055-dfbc7f1a15bf,2026-07-02,Khoa Lê,hdang@example.com,Điện thoại,Electronics,3,21713694,10,58626974.0,Huy Thế Nguyễn,South,Tiền mặt,Cancelled
+964fa8fc-6be2-48b5-a27d-20ee88227a81,2026-04-15,Xuân Mai,john95@example.org,Điện thoại,Accessories,5,7944975,5,37738631.0,Vân Nguyễn,Central,Tiền mặt,Cancelled
+776e077e-dcd0-4001-8b7e-59e323107692,2026-04-14,Lan Lê,johnvu@example.com,Bàn phím,Computer,1,25009150,15,21257778.0,Quý cô Dương Đặng,North,Tiền mặt,Completed
+cbee8597-e1c8-4efd-b238-44cf91fe6d3c,2026-05-02,Châu Văn Vũ,zdang@example.net,Điện thoại,Computer,5,720190,10,3240855.0,Lan Mai,Central,Ví điện tử,Pending
+6f540e65-231f-45aa-90c1-7ac924505209,2026-02-16,Bà Yến Dương,johntran@example.org,Máy tính bảng,Computer,2,6106603,20,9770565.0,Cô Vi Đặng,South,Tiền mặt,Pending

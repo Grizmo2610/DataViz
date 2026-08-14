@@ -5,6 +5,17 @@ from typing import Any
 from .base import BaseProvider
 
 
+_PYTHON_TO_JSON_TYPE: dict[str, str] = {
+    "str": "string",
+    "int": "integer",
+    "float": "number",
+    "bool": "boolean",
+    "list": "array",
+    "dict": "object",
+    "Any": "string",
+}
+
+
 class OpenAIProvider(BaseProvider):
     """Stub provider for OpenAI-compatible chat workflows."""
 
@@ -46,7 +57,11 @@ class OpenAIProvider(BaseProvider):
 
         formatted: list[dict[str, Any]] = []
         for entry in registry_entries:
-            properties = {arg: {"type": "string"} for arg in entry["args"]}
+            arg_types: dict[str, str] = entry.get("arg_types", {})
+            properties = {
+                arg: {"type": _PYTHON_TO_JSON_TYPE.get(arg_types.get(arg, "Any"), "string")}
+                for arg in entry["args"]
+            }
             formatted.append(
                 {
                     "type": "function",

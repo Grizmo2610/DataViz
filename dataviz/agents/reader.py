@@ -8,10 +8,10 @@ from dataviz.tools.loader import ToolRegistry
 class ReaderAgent(BaseAgent):
     """Load sample data and schema information."""
 
-    def __init__(self, tool_registry: ToolRegistry | None = None) -> None:
+    def __init__(self, tool_registry: ToolRegistry | None = None, provider: object | None = None) -> None:
         """Initialize the reader agent."""
 
-        super().__init__(tool_registry=tool_registry)
+        super().__init__(tool_registry=tool_registry, provider=provider)
 
     def run(self, context: PipelineContext) -> AgentResult:
         """Read the first file and return sample metadata."""

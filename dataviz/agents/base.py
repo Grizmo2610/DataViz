@@ -44,14 +44,20 @@ class AgentResult:
 class BaseAgent(ABC):
     """Abstract base class for pipeline agents."""
 
-    def __init__(self, tool_registry: ToolRegistry | None = None) -> None:
+    def __init__(
+        self,
+        tool_registry: ToolRegistry | None = None,
+        provider: Any | None = None,
+    ) -> None:
         """Initialize the agent.
 
         Args:
             tool_registry: Optional tool registry used by the agent.
+            provider: Optional LLM provider for narrative generation.
         """
 
         self.tool_registry = tool_registry or ToolRegistry()
+        self.provider = provider
 
     @abstractmethod
     def run(self, context: PipelineContext) -> AgentResult:
@@ -77,3 +83,33 @@ class BaseAgent(ABC):
         """
 
         return self.tool_registry.get(tool_name)(*args, **kwargs)
+
+    def ask_llm(self, prompt: str, system: str | None = None) -> str:
+        """Send a prompt to the configured LLM provider and return the text reply.
+
+        Falls back to an empty string when no provider is configured.
+
+        Args:
+            prompt: User-turn content.
+            system: Optional system message.
+
+        Returns:
+            The model's text response, or ``""`` if no provider is available.
+        """
+
+        if self.provider is None:
+            return ""
+
+        messages: list[dict[str, Any]] = []
+        if system:
+            # Anthropic puts system at the top-level; other providers may differ.
+            # Keep it simple: prepend as a user/assistant round.
+            messages.append({"role": "user", "content": f"[System] {system}"})
+            messages.append({"role": "assistant", "content": "Understood."})
+        messages.append({"role": "user", "content": prompt})
+
+        try:
+            response = self.provider.chat(messages)
+            return response.get("content", "")
+        except Exception:  # noqa: BLE001
+            return ""

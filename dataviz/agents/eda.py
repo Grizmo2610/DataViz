@@ -7,10 +7,10 @@ from dataviz.tools.loader import ToolRegistry
 class EDAAgent(BaseAgent):
     """Compute descriptive EDA outputs."""
 
-    def __init__(self, tool_registry: ToolRegistry | None = None) -> None:
+    def __init__(self, tool_registry: ToolRegistry | None = None, provider: object | None = None) -> None:
         """Initialize the EDA agent."""
 
-        super().__init__(tool_registry=tool_registry)
+        super().__init__(tool_registry=tool_registry, provider=provider)
 
     def run(self, context: PipelineContext) -> AgentResult:
         """Compute EDA summaries from the sampled data."""
