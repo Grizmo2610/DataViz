@@ -422,7 +422,11 @@ class HtmlExporter(BaseExporter):
         for chart in charts:
             spec = chart.get("vega_spec")
             title = chart.get("title", chart.get("chart_id", "Chart"))
-            cid = f"vg_{self._chart_counter}"
+            # Keyed by the chart's own chart_id (stable across exporters) so
+            # PdfExporter._inject_svg_charts, which looks up id="vg_{chart_id}",
+            # can actually find and replace this placeholder. Falls back to a
+            # counter only for charts missing a chart_id.
+            cid = f"vg_{chart.get('chart_id') or self._chart_counter}"
             self._chart_counter += 1
 
             if spec and not spec.get("_stub"):

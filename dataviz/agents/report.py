@@ -21,10 +21,11 @@ class ReportAgent(BaseAgent):
                 "Run: dataviz config set --provider <name> --key <key>"
             )
 
-        schema  = context.extra.get("schema", {})
-        stats   = context.extra.get("stats", {})
-        charts  = context.extra.get("charts", [])
-        out_dir = context.extra.get("out_dir", "./dataviz_output")
+        schema    = context.extra.get("schema", {})
+        stats     = context.extra.get("stats", {})
+        charts    = context.extra.get("charts", [])
+        viz_trace = context.extra.get("viz_trace", [])
+        out_dir   = context.extra.get("out_dir", "./dataviz_output")
 
         log.debug(
             "[ReportAgent] run  schema_cols=%d  stats_rows=%s  charts=%d  "
@@ -56,12 +57,18 @@ class ReportAgent(BaseAgent):
         )
 
         log.debug("[ReportAgent] starting agent loop")
+        report_trace: list[dict] = []
         raw = self.run_agentic(
             initial_prompt=initial_prompt,
             system=system,
             agent_name="report",
             max_turns=10,
+            trace_sink=report_trace,
         )
+        # Full pipeline trace shown to the notebook exporter: chart-selection/
+        # rendering calls from VizAgent, followed by the narrative-writing
+        # calls this agent just made.
+        tool_trace = list(viz_trace) + report_trace
 
         # ── Parse agent output ────────────────────────────────────────────────
         try:
@@ -120,6 +127,7 @@ class ReportAgent(BaseAgent):
             lang=context.lang,
             meta=meta,
             charts=charts,
+            tool_trace=tool_trace,
         )
         log.debug(
             "[ReportAgent] assemble_dashboard complete  %.3fs  output=%r  sections=%d",

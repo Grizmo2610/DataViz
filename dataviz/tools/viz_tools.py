@@ -144,19 +144,28 @@ def auto_select_charts(
 def render_charts(
     chart_specs: list[dict[str, Any]],
     df: pd.DataFrame,
+    out_dir: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Render a list of chart spec descriptors into Altair/Vega JSON specs.
+    """Render a list of chart spec descriptors into Altair/Vega JSON specs,
+    and (when ``out_dir`` is given) save each one as a real SVG file on disk.
 
     Each output dict contains:
     - ``chart_id`` (str)
     - ``chart_type`` (str)
     - ``title`` (str)
-    - ``vega_spec`` (dict) — ready for Vega-Embed
+    - ``vega_spec`` (dict) — ready for Vega-Embed (HTML/notebook)
     - ``columns_used`` (list[str])
+    - ``image_path`` (str | None) — path to a saved SVG file, relative to
+      ``out_dir``, when it could be rendered. Exporters that can't embed an
+      interactive Vega-Embed widget (Markdown, PDF) use this real file
+      instead of re-deriving one from the raw spec after the fact.
 
     Args:
         chart_specs: Descriptors from ``auto_select_charts``.
         df: The full (or sampled) DataFrame.
+        out_dir: Report output directory. When given, charts are saved as
+            actual ``.svg`` files under ``<out_dir>/charts/``. Injected
+            automatically by the agent runtime -- not an LLM-supplied arg.
 
     Returns:
         List of rendered chart dicts.
@@ -183,6 +192,7 @@ def render_charts(
                 result = plot_pie(df, spec["column"])
             else:
                 continue
+            result["image_path"] = _save_chart_svg(result, out_dir) if out_dir else None
             rendered.append(result)
         except Exception as exc:  # noqa: BLE001
             rendered.append({
@@ -192,8 +202,34 @@ def render_charts(
                 "error": str(exc),
                 "vega_spec": None,
                 "columns_used": [],
+                "image_path": None,
             })
     return rendered
+
+
+def _save_chart_svg(chart: dict[str, Any], out_dir: str) -> str | None:
+    """Render ``chart``'s vega_spec to an SVG file under
+    ``<out_dir>/charts/<chart_id>.svg`` and return the path relative to
+    ``out_dir`` (using forward slashes, for use in Markdown/HTML links).
+
+    Returns None if no SVG renderer backend is available.
+    """
+    from pathlib import Path as _Path
+
+    from dataviz.exporters.chart_render import chart_to_svg
+
+    vega_spec = chart.get("vega_spec")
+    if not vega_spec:
+        return None
+    svg = chart_to_svg(vega_spec)
+    if svg is None:
+        return None
+
+    charts_dir = _Path(out_dir) / "charts"
+    charts_dir.mkdir(parents=True, exist_ok=True)
+    file_path = charts_dir / f"{chart.get('chart_id', 'chart')}.svg"
+    file_path.write_text(svg, encoding="utf-8")
+    return f"charts/{file_path.name}"
 
 
 # ---------------------------------------------------------------------------

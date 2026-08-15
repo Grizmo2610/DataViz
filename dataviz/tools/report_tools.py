@@ -180,6 +180,7 @@ def assemble_dashboard(
     lang: str = "en",
     meta: dict[str, Any] | None = None,
     charts: list[dict[str, Any]] | None = None,
+    tool_trace: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Assemble all report sections into an output file.
 
@@ -194,6 +195,10 @@ def assemble_dashboard(
         lang:          Reserved for i18n.
         meta:          Optional metadata dict shown in the report header.
         charts:        Rendered chart dicts (for PDF SVG injection).
+        tool_trace:    Ordered list of ``{"tool": name, "input": args}`` for
+                        every tool the agents actually called (Viz + Report
+                        stages). Used by the notebook exporter to emit real
+                        code cells instead of narrative text.
 
     Returns:
         Dict with ``output_path`` and ``sections_rendered``.
@@ -238,6 +243,10 @@ def assemble_dashboard(
         "template_name": template_name,
         "lang":          lang,
         "charts":        charts or [],
+        "tool_trace":    tool_trace or [],
+        # Raw (unrendered) section values -- needed by exporters (notebook)
+        # that reconstruct real code-cell outputs rather than markdown text.
+        "sections_raw":  sections,
     }
 
     report_path = exporter.write(rendered_sections, out_path, **write_kwargs)

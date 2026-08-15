@@ -122,11 +122,13 @@
       "description": "Render chart spec descriptors into Vega-Lite JSON specs",
       "args": [
         "chart_specs",
-        "df"
+        "df",
+        "out_dir"
       ],
       "arg_types": {
         "chart_specs": "list",
-        "df": "Any"
+        "df": "Any",
+        "out_dir": "Any"
       },
       "agent": "viz"
     },

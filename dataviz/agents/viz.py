@@ -21,6 +21,7 @@ class VizAgent(BaseAgent):
         stats  = context.extra.get("stats", {})
         df     = context.extra.get("sample_df")
         mode   = getattr(context, "mode", "default")
+        out_dir = context.extra.get("out_dir", "./dataviz_output")
 
         if df is None:
             raise RuntimeError(
@@ -43,7 +44,7 @@ class VizAgent(BaseAgent):
             f"1. Call auto_select_charts with no arguments -- schema and stats are "
             f"injected automatically.\n"
             f"2. Call render_charts passing the chart specs returned by auto_select_charts.\n\n"
-            f"IMPORTANT: Do NOT pass 'df', 'schema', or 'stats' arguments -- they are "
+            f"IMPORTANT: Do NOT pass 'df', 'schema', 'stats', or 'out_dir' arguments -- they are "
             f"injected automatically.\n\n"
             f"After both tool calls are complete, respond with a single JSON object "
             f"(no markdown, no extra text) with exactly this key:\n"
@@ -56,12 +57,14 @@ class VizAgent(BaseAgent):
         )
 
         log.debug("[VizAgent] starting agent loop")
+        viz_trace: list[dict] = []
         raw = self.run_agentic(
             initial_prompt=initial_prompt,
             system=system,
             agent_name="viz",
             max_turns=8,
-            context_data={"df": df, "schema": schema, "stats": stats, "mode": mode},
+            context_data={"df": df, "schema": schema, "stats": stats, "mode": mode, "out_dir": out_dir},
+            trace_sink=viz_trace,
         )
 
         try:
@@ -85,6 +88,6 @@ class VizAgent(BaseAgent):
         log.debug("[VizAgent] run complete  charts=%d  ok=%d  error=%d", len(charts), ok, err)
 
         return AgentResult(
-            output={"charts": charts},
-            context_updates={"charts": charts},
+            output={"charts": charts, "viz_trace": viz_trace},
+            context_updates={"charts": charts, "viz_trace": viz_trace},
         )

@@ -1,6 +1,26 @@
 # Changelog
 
 All notable changes to DataViz CLI will be documented here.
+
+## [0.1.2-beta]
+
+### Fixed
+- Fix `write_recommendations()` nhận `list[dict]` thay vì `list[str]` (`TypeError: sequence item 0: expected str instance, dict found`) -> Do schema tool-call hardcode `items: {"type": "object"}` cho mọi tham số kiểu list, không phân biệt phần tử là string hay dict. Đã thêm `arg_item_types` vào registry và đọc đúng type khi build schema (`dataviz/tools/registry.json`, `dataviz/providers/gemini_provider.py`, `dataviz/providers/claude_provider.py`, `dataviz/providers/openai_provider.py`)
+- Fix export Markdown/Notebook hiển thị chart dưới dạng text dump (`repr()` của `vega_spec`) thay vì hình ảnh thực -> Thêm renderer SVG dùng chung, có chuỗi fallback Altair -> vl-convert -> Matplotlib -> **pure-Python (zero dependency)** để đảm bảo luôn render được kể cả khi không cài thêm package nào (`dataviz/exporters/chart_render.py`)
+- Fix `_chart_to_svg()` trong PDF exporter luôn trả `None` do gọi `.decode()` vô điều kiện lên kết quả `vl_convert.vegalite_to_svg()` (vốn đã là `str`, không phải `bytes`) -> khiến toàn bộ chart trong PDF bị rỗng (`dataviz/exporters/pdf_exporter.py`)
+- Fix ID không khớp giữa `HtmlExporter` (sinh `vg_0, vg_1, ...` theo counter) và `PdfExporter._inject_svg_charts()` (tìm theo `vg_{chart_id}`) -> SVG không bao giờ được chèn vào PDF (`dataviz/exporters/html_exporter.py`)
+- Fix `_inject_svg_charts()` thay thế `id="vg_..."` bằng chuỗi chứa comment HTML không đóng (`<!--replaced`), làm toàn bộ nội dung phía sau chart đầu tiên trong PDF bị ẩn -> Đổi sang thay nguyên khối `<div>...</div>` (`dataviz/exporters/pdf_exporter.py`)
+- Fix notebook export không hợp lệ theo chuẩn `nbformat` (thiếu `id` cho cell, cell markdown có key `outputs` không hợp lệ) (`dataviz/exporters/notebook_exporter.py`)
+
+### Added
+- Cơ chế trace tool call thật xuyên suốt agent loop (`trace_sink`) để exporter biết chính xác agent đã gọi tool nào với input gì, thay vì suy luận từ text narrative (`dataviz/agents/base.py`, `dataviz/agents/viz.py`, `dataviz/agents/report.py`, `dataviz/tools/report_tools.py`)
+- Notebook export giờ dựng lại pipeline thành các cell code thật — mỗi tool call agent gọi (`auto_select_charts`, `render_charts`, `write_summary`, `write_insights`, `write_recommendations`) là 1 cell riêng kèm output thật, chart hiển thị qua mimetype `application/vnd.vegalite.v6+json` + `image/svg+xml` (`dataviz/exporters/notebook_exporter.py`)
+- `render_charts()` giờ lưu ảnh SVG thật ra đĩa (`<out_dir>/charts/<chart_id>.svg`) và trả về `image_path`, thay vì chỉ giữ `vega_spec` trong bộ nhớ để exporter tái tạo sau -> Markdown/Notebook dùng file thật thay vì reconstruct (`dataviz/tools/viz_tools.py`, `dataviz/tools/registry.json`, `dataviz/agents/viz.py`)
+- Render bảng schema/stats thành HTML `<table>` thật trong Markdown và Notebook export, thay vì list gạch đầu dòng phẳng (`dataviz/exporters/md_exporter.py`, `dataviz/exporters/notebook_exporter.py`)
+
+### Changed
+- Cập nhật version lên `0.1.2` (`pyproject.toml`)
+
 ## [0.1.1-beta]
 
 ### Fixed

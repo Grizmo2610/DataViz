@@ -262,6 +262,7 @@ class BaseAgent(ABC):
         agent_name: str,
         max_turns: int = 6,
         context_data: dict[str, Any] | None = None,
+        trace_sink: list[dict[str, Any]] | None = None,
     ) -> str:
         """Run a real LLM-driven agent loop for the given agent.
 
@@ -285,6 +286,13 @@ class BaseAgent(ABC):
             system:         System instruction for the model.
             agent_name:     Registry agent name (e.g. ``"report"``).
             max_turns:      Hard cap on LLM turns before raising.
+            trace_sink:     If provided, each dispatched tool call is appended
+                             to this list as ``{"tool": name, "input": args}``
+                             (LLM-supplied args only, not injected context
+                             objects like ``df``). Lets callers reconstruct
+                             what the agent actually did -- e.g. so exporters
+                             can render real code cells instead of narrative
+                             text.
 
         Returns:
             The model's final text response.
@@ -360,6 +368,9 @@ class BaseAgent(ABC):
                     "[%s] run_agentic  → tool=%s  id=%s  input=%s",
                     agent, tool_name, call_id, _fmt(tool_input),
                 )
+
+                if trace_sink is not None:
+                    trace_sink.append({"tool": tool_name, "input": dict(tool_input)})
 
                 # Inject non-serializable context objects (e.g. DataFrames).
                 # The LLM cannot pass these -- agent supplies them transparently.

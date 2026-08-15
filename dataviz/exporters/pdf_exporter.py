@@ -301,24 +301,33 @@ class PdfExporter(BaseExporter):
 </html>"""
 
     def _inject_svg_charts(self, html: str, charts: list[dict[str, Any]]) -> str:
-        """Replace vega-embed script targets with inline SVG in the HTML body."""
+        """Replace vega-embed placeholder divs with inline SVG in the HTML body.
+
+        HtmlExporter emits each chart as an empty
+        ``<div id="vg_{chart_id}" class="vega-container"></div>`` that a
+        <script> fills in client-side via vega-embed. WeasyPrint doesn't run
+        JavaScript, so for PDF we replace that *whole* placeholder element
+        with the rendered SVG -- replacing only a fragment of it (e.g. just
+        the id attribute) would leave the tag unbalanced and corrupt the
+        rest of the document.
+        """
         if not charts:
             return html
 
         for chart in charts:
             spec = chart.get("vega_spec")
-            if not spec or spec.get("_stub"):
+            chart_id = chart.get("chart_id", "")
+            if not spec or spec.get("_stub") or not chart_id:
                 continue
             svg = self._chart_to_svg(spec)
-            if not svg:
-                continue
-            # vega-embed puts charts in div#vg_N; replace with SVG
-            chart_id = chart.get("chart_id", "")
-            if chart_id:
-                # Inject SVG into the placeholder div
-                html = html.replace(
-                    f'id="vg_{chart_id}"',
-                    f'>{svg}</div><!--replaced',
+            placeholder = f'<div id="vg_{chart_id}" class="vega-container"></div>'
+            if svg:
+                replacement = f'<div id="vg_{chart_id}" class="vega-container">{svg}</div>'
+            else:
+                replacement = (
+                    f'<div id="vg_{chart_id}" class="vega-container">'
+                    f'<p style="color:#e63946;font-size:.85rem">Chart could not be rendered.</p></div>'
                 )
+            html = html.replace(placeholder, replacement)
 
         return html
