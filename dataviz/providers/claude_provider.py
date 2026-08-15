@@ -62,16 +62,42 @@ class ClaudeProvider(BaseProvider):
         """
 
         if not self.api_key:
-            logger.warning(
-                "ClaudeProvider: no API key configured — returning empty response. "
-                "Set providers.claude.api_key in your dataviz config."
+            raise RuntimeError(
+                "ClaudeProvider: no api_key configured. "
+                "Run: dataviz config set --provider claude --key <your_key>"
             )
-            return {"content": "", "tool_calls": [], "finish_reason": "stop"}
+
+        # Translate provider-agnostic tool_result messages to Anthropic wire format.
+        # BaseAgent.run_agentic emits {"role": "tool_result", "tool_call_id": ...,
+        # "tool_name": ..., "content": ...}.  Anthropic expects tool results as a
+        # user turn containing a content block of type "tool_result".
+        wire_messages: list[dict[str, Any]] = []
+        for msg in messages:
+            if msg.get("role") == "tool_result":
+                wire_messages.append({
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": msg["tool_call_id"],
+                        "content": msg["content"],
+                    }],
+                })
+            elif msg.get("role") == "assistant" and msg.get("tool_calls"):
+                # Assistant turn that contains tool_use blocks -- reconstruct the
+                # content list so the API sees both text and tool_use blocks.
+                content_blocks: list[dict[str, Any]] = []
+                if msg.get("content"):
+                    content_blocks.append({"type": "text", "text": msg["content"]})
+                for call in msg["tool_calls"]:
+                    content_blocks.append(call)  # already in tool_use block shape
+                wire_messages.append({"role": "assistant", "content": content_blocks})
+            else:
+                wire_messages.append(msg)
 
         payload: dict[str, Any] = {
             "model": self.model,
             "max_tokens": 4096,
-            "messages": messages,
+            "messages": wire_messages,
         }
         if tools:
             payload["tools"] = tools
@@ -133,8 +159,8 @@ class ClaudeProvider(BaseProvider):
         Each entry is expected to have:
         - ``name`` (str)
         - ``description`` (str)
-        - ``args`` (list[str]) — positional arg names
-        - ``arg_types`` (dict[str, str], optional) — maps arg name → Python type name
+        - ``args`` (list[str]) -- positional arg names
+        - ``arg_types`` (dict[str, str], optional) -- maps arg name -> Python type name
 
         Args:
             registry_entries: Tool registry entries.
@@ -146,11 +172,24 @@ class ClaudeProvider(BaseProvider):
         formatted: list[dict[str, Any]] = []
         for entry in registry_entries:
             arg_types: dict[str, str] = entry.get("arg_types", {})
+            arg_item_types: dict[str, str] = entry.get("arg_item_types", {})
+            # Skip Any-typed args -- they are injected via context_data,
+            # not supplied by the LLM.
+            exposed_args = [
+                arg for arg in entry["args"]
+                if arg_types.get(arg, "Any") != "Any"
+            ]
             properties: dict[str, Any] = {}
-            for arg in entry["args"]:
-                python_type = arg_types.get(arg, "Any")
+            for arg in exposed_args:
+                python_type = arg_types.get(arg, "str")
                 json_type = _PYTHON_TO_JSON_TYPE.get(python_type, "string")
-                properties[arg] = {"type": json_type}
+                prop: dict[str, Any] = {"type": json_type}
+                if json_type == "array":
+                    item_python_type = arg_item_types.get(arg, "object")
+                    item_json_type = _PYTHON_TO_JSON_TYPE.get(item_python_type, "object") \
+                        if item_python_type != "object" else "object"
+                    prop["items"] = {"type": item_json_type}
+                properties[arg] = prop
 
             formatted.append(
                 {
@@ -159,7 +198,7 @@ class ClaudeProvider(BaseProvider):
                     "input_schema": {
                         "type": "object",
                         "properties": properties,
-                        "required": entry["args"],
+                        "required": exposed_args,
                     },
                 }
             )

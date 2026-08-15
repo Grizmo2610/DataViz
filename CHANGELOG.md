@@ -1,8 +1,18 @@
 # Changelog
 
 All notable changes to DataViz CLI will be documented here.
+## [0.1.1-beta]
 
-## [0.1.0]-rc
+### Fixed
+- Fix bug model không thực sự gọi đến các agent mà hard code -> Đã bỏ hardcode và agent thực sự được call (`dataviz/agents/`, `dataviz/providers/`, `dataviz/cli.py`)
+
+### Added
+- Unit tests cho agents và orchestrator (`tests/test_agents.py`, `tests/test_orchestrator.py`)
+
+### Changed
+- Cập nhật version lên `0.1.1` (`pyproject.toml`)
+
+## [0.1.0-rc]
 
 ### Added
 - Phase 0 repository skeleton on `phase-0-repo-initialization`

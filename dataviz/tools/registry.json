@@ -290,7 +290,10 @@
         "insights": "list",
         "lang": "str"
       },
-      "agent": "report"
+      "agent": "report",
+      "arg_item_types": {
+        "insights": "str"
+      }
     },
     {
       "name": "assemble_dashboard",

@@ -67,18 +67,8 @@ class PdfExporter(BaseExporter):
 
         Returns None on failure (chart will be omitted from PDF).
         """
-        try:
-            import altair as alt
-            chart = alt.Chart.from_dict(vega_spec)
-            return chart.to_image(format="svg").decode()
-        except Exception:  # noqa: BLE001
-            try:
-                # Fallback: altair-saver or vl-convert if available
-                import vl_convert as vlc  # type: ignore[import]
-                svg_bytes = vlc.vegalite_to_svg(json.dumps(vega_spec))
-                return svg_bytes.decode()
-            except Exception:  # noqa: BLE001
-                return None
+        from .chart_render import chart_to_svg
+        return chart_to_svg(vega_spec)
 
     def _build_print_html(self, rendered_sections: list[str], **kwargs: Any) -> str:
         """Build a print-optimised HTML document with inline SVG charts."""

@@ -69,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-tui", action="store_true", help="Skip the TUI.")
     parser.add_argument("--template", default=None, help="Dashboard template name.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--verbose", "-v", action="store_true",
+                        help="Print detailed debug log for every pipeline step.")
 
     add_subcommand_parsers(parser)
 
@@ -305,6 +307,41 @@ def handle_main_command(args: argparse.Namespace) -> int:
     if not args.files:
         return 0
 
+    # -- Logging setup ---------------------------------------------------------
+    import logging as _logging
+    import datetime as _dt
+    import os as _os
+
+    # Always write full DEBUG log to a per-session file under out_dir/logs/
+    _raw_out_dir = (args.out_dir or "./dataviz_output")
+    _log_dir = _os.path.join(_raw_out_dir, "logs")
+    _os.makedirs(_log_dir, exist_ok=True)
+    _session_ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    _log_file = _os.path.join(_log_dir, f"session_{_session_ts}.log")
+
+    _fmt = "%(asctime)s.%(msecs)03d  %(levelname)-5s  %(message)s"
+    _datefmt = "%H:%M:%S"
+
+    root_logger = _logging.getLogger()
+    root_logger.setLevel(_logging.DEBUG)  # capture everything
+
+    # File handler — always DEBUG
+    _fh = _logging.FileHandler(_log_file, encoding="utf-8")
+    _fh.setLevel(_logging.DEBUG)
+    _fh.setFormatter(_logging.Formatter(_fmt, datefmt=_datefmt))
+    root_logger.addHandler(_fh)
+
+    # Console handler — DEBUG if --verbose, WARNING otherwise
+    _ch = _logging.StreamHandler()
+    _ch.setLevel(_logging.DEBUG if getattr(args, "verbose", False) else _logging.WARNING)
+    _ch.setFormatter(_logging.Formatter(_fmt, datefmt=_datefmt))
+    root_logger.addHandler(_ch)
+
+    _logging.getLogger("dataviz").debug(
+        "Session started  log=%s  args=%s", _log_file,
+        {k: v for k, v in vars(args).items() if v is not None and v is not False}
+    )
+
     config = load_config(
         {
             "output":     args.output,
@@ -331,7 +368,7 @@ def handle_main_command(args: argparse.Namespace) -> int:
     lang          = config.get("lang", "auto")
     mode          = "deep" if args.deep else ("fast" if args.fast else "default")
 
-    # ── Resolve input: single file or multi-file join ────────────────────────
+    # -- Resolve input: single file or multi-file join ------------------------
     file_paths = list(args.files)
 
     if len(file_paths) > 1:
@@ -359,14 +396,21 @@ def handle_main_command(args: argparse.Namespace) -> int:
             print(f"Error: {exc}")
             return 1
 
-    # ── Build provider (optional — graceful if no API key) ───────────────────
+    # -- Build provider -------------------------------------------------------
     from dataviz.providers import get_provider
     try:
         provider = get_provider(config)
-    except Exception:  # noqa: BLE001
-        provider = None
+    except Exception as exc:
+        print(f"\n  X Provider error: {exc}")
+        print("    Run: dataviz config set --provider <name> --key <key>")
+        return 1
 
-    # ── Run Orchestrator pipeline ────────────────────────────────────────────
+    if not provider or not getattr(provider, "api_key", ""):
+        print("\n  X No API key configured — cannot run without a provider.")
+        print("    Run: dataviz config set --provider <name> --key <key>")
+        return 1
+
+    # -- Run Orchestrator pipeline --------------------------------------------
     from dataviz.agents.orchestrator import Orchestrator
     from dataviz.tools.loader import ToolRegistry
 
@@ -384,17 +428,93 @@ def handle_main_command(args: argparse.Namespace) -> int:
         },
     )
 
-    print(f"\nAnalyzing {args.files[0]!r}" + (f" (+{len(args.files)-1} more)" if len(args.files) > 1 else "") + " …")
+    # -- Print run header -----------------------------------------------------
+    files_label = args.files[0] + (f" (+{len(args.files)-1} more)" if len(args.files) > 1 else "")
+    provider_label = f"{type(provider).__name__} / {provider.model}"
+    print()
+    print(f"  File      : {files_label}")
+    print(f"  Output    : {output_format}  ->  {out_dir}")
+    print(f"  Provider  : {provider_label}")
+    print(f"  Mode      : {mode}")
+    print()
+
+    # -- Instrumented pipeline run ---------------------------------------------
+    import time as _time
+
+    STAGE_LABELS = {
+        "reader": "Reading file & schema detection",
+        "eda":    "EDA  (stats, nulls, outliers, time-series)",
+        "viz":    "Rendering charts",
+        "report": "Writing report",
+    }
+
+    class _VerboseOrch(Orchestrator):
+        def run(self, ctx):
+            from dataviz.agents.eda import EDAAgent
+            from dataviz.agents.reader import ReaderAgent
+            from dataviz.agents.report import ReportAgent
+            from dataviz.agents.viz import VizAgent
+            from dataviz.agents.orchestrator import PipelineState
+
+            results = {}
+            for stage_name, agent_cls in [
+                ("reader", ReaderAgent),
+                ("eda",    EDAAgent),
+                ("viz",    VizAgent),
+                ("report", ReportAgent),
+            ]:
+                label = STAGE_LABELS.get(stage_name, stage_name)
+                print(f"  [{stage_name.upper():6}] {label} ...", end="", flush=True)
+                t0 = _time.monotonic()
+                agent = self._make_agent(agent_cls)
+                result = agent.run(ctx)
+                elapsed = _time.monotonic() - t0
+                ctx.extra.update(result.context_updates)
+
+                # Stage-specific detail line
+                if stage_name == "reader":
+                    rows = ctx.extra.get("stats", {}).get("row_count", "?")
+                    cols = ctx.extra.get("schema", {}).get("column_count", "?")
+                    detail = f"{rows:,} rows x {cols} cols" if isinstance(rows, int) else str(rows)
+                elif stage_name == "eda":
+                    detail = "done"
+                elif stage_name == "viz":
+                    charts = result.output.get("charts", [])
+                    ok = sum(1 for c in charts if c.get("vega_spec") and not c.get("error"))
+                    detail = f"{ok}/{len(charts)} charts OK"
+                elif stage_name == "report":
+                    detail = "agent"
+                else:
+                    detail = ""
+
+                print(f" {elapsed:.1f}s  {detail}")
+                results[stage_name] = result.output
+
+            return PipelineState(context=ctx, results=results)
 
     try:
-        orch  = Orchestrator(provider=provider, tool_registry=ToolRegistry())
+        orch  = _VerboseOrch(provider=provider, tool_registry=ToolRegistry())
         state = orch.run(context)
-    except Exception as exc:  # noqa: BLE001
-        print(f"Pipeline error: {exc}")
-        import traceback; traceback.print_exc()
+    except Exception as exc:
+        from dataviz.agents.base import LLMEmptyResponseError, LLMAPIError
+        print()
+        if isinstance(exc, LLMEmptyResponseError):
+            print(f"  X LLM returned empty content  [{exc.reason}]")
+            print(f"    {exc.detail}")
+            print()
+            print("  Possible fixes:")
+            print("    • Check your API key:  dataviz config show")
+            print("    • Check model name:    dataviz config set --provider <name> --model <model>")
+            print("    • Check API quota / rate limit on your provider dashboard")
+        elif isinstance(exc, LLMAPIError):
+            print(f"  X LLM API error  [{exc.reason}]")
+            print(f"    {exc.detail}")
+        else:
+            print(f"  X Pipeline error: {type(exc).__name__}: {exc}")
+            import traceback as _tb; _tb.print_exc()
         return 1
 
-    # ── Print brief terminal summary ─────────────────────────────────────────
+    # -- Print brief terminal summary -----------------------------------------
     reader_out  = state.results.get("reader", {})
     report_out  = state.results.get("report", {})
     viz_out     = state.results.get("viz", {})
@@ -404,14 +524,14 @@ def handle_main_command(args: argparse.Namespace) -> int:
     n_charts  = len(viz_out.get("charts", []))
     out_path  = report_out.get("report", {}).get("output_path", "?")
 
-    print(f"\n{'─'*50}")
+    print(f"\n{'-'*50}")
     print(f"  Rows      : {n_rows:,}" if isinstance(n_rows, int) else f"  Rows      : {n_rows}")
     print(f"  Columns   : {n_cols}")
     print(f"  Charts    : {n_charts}")
     print(f"  Report    : {out_path}")
-    print(f"{'─'*50}\n")
+    print(f"{'-'*50}\n")
 
-    # ── Optional TUI ─────────────────────────────────────────────────────────
+    # -- Optional TUI ---------------------------------------------------------
     if should_launch_tui(args.no_tui):
         try:
             app = DatavizApp(context=context)
