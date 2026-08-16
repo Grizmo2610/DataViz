@@ -1,231 +1,54 @@
-# Configuration Guide
+# Configuration
 
-DataViz uses plain JSON configuration files.
+DataViz uses an LLM provider to generate narrative text for reports. This step is **optional** — if skipped, text sections are still generated automatically from the data itself.
 
-## Where config lives
+## Setting a Provider
 
-There are two config layers:
+```bash
+# Claude (Anthropic)
+dataviz config set --provider claude --key sk-ant-...
 
-- Global config: `~/.config/dataviz/config.json`
-- Local config: `.dataviz/config.json`
+# OpenAI
+dataviz config set --provider openai --key sk-...
 
-Config is merged in this order:
+# Gemini
+dataviz config set --provider gemini --key AIza...
 
-1. Built-in defaults
-2. Global config
-3. Local config
-4. CLI flags
-
-Later layers override earlier layers field by field.
-
-## Supported providers
-
-DataViz supports these provider names:
-
-- `claude`
-- `openai`
-- `openai_compatible`
-- `gemini`
-
-## Common fields
-
-These fields are supported at the top level:
-
-- `default_provider`
-- `tool_gen_mode`
-- `lang`
-- `output`
-- `out_dir`
-
-`tool_gen_mode` can be:
-
-- `immediate`
-- `deferred`
-
-`lang` can be:
-
-- `en`
-- `vi`
-- `auto`
-
-`output` can be:
-
-- `html`
-- `md`
-- `pdf`
-- `notebook`
-
-## Provider fields
-
-Each provider entry may include:
-
-- `api_key`
-- `model`
-- `base_url` for OpenAI-compatible endpoints
-
-The CLI command for a provider always updates that provider and sets it as `default_provider`.
-
-## Claude setup
-
-Claude uses the `claude` provider name.
-
-```powershell
-python -m dataviz config set --provider claude --key sk-ant-...
-python -m dataviz config update --provider claude --model claude-sonnet-4-6
+# Specify a particular model
+dataviz config set --provider claude --key sk-ant-... --model claude-opus-4-6
 ```
 
-Example config:
+## Viewing the Current Config
 
-```json
-{
-  "default_provider": "claude",
-  "providers": {
-    "claude": {
-      "api_key": "sk-ant-...",
-      "model": "claude-sonnet-4-6"
-    }
-  }
-}
+```bash
+dataviz config show
 ```
 
-Recommended when you want Anthropic Claude models.
+## Updating a Provider
 
-## OpenAI setup
-
-OpenAI uses the `openai` provider name.
-
-```powershell
-python -m dataviz config set --provider openai --key sk-...
-python -m dataviz config update --provider openai --model gpt-4o
+```bash
+dataviz config update --provider claude --key sk-ant-NEW... --model claude-haiku-4-5-20251001
 ```
 
-Example config:
+## Config File Locations
 
-```json
-{
-  "default_provider": "openai",
-  "providers": {
-    "openai": {
-      "api_key": "sk-...",
-      "model": "gpt-4o",
-      "base_url": "https://api.openai.com/v1"
-    }
-  }
-}
-```
+The global config is stored at:
 
-Use this for the official OpenAI API.
+| OS | Path |
+|----|------|
+| Linux / macOS | `~/.config/dataviz/config.json` |
+| Windows | `C:\Users\<you>\.config\dataviz\config.json` |
 
-## OpenAI-compatible setup
+You can also place a `.dataviz/config.json` file in your project directory to override the global config for that project.
 
-Use `openai` when the endpoint behaves like the OpenAI chat API, but override `base_url`.
+## Per-run Overrides
 
-Examples:
+You can override the provider or model for a single run without modifying the saved config:
 
-- Groq
-- Together
-- Azure OpenAI
-- Other OpenAI-compatible gateways
+```bash
+# Use OpenAI instead of the default provider
+dataviz sales.csv --provider openai --output html --no-tui
 
-```powershell
-python -m dataviz config set --provider openai --key gsk_...
-python -m dataviz config update --provider openai --base-url https://api.groq.com/openai/v1
-python -m dataviz config update --provider openai --model llama-3.1-70b-versatile
-```
-
-Example config:
-
-```json
-{
-  "default_provider": "openai",
-  "providers": {
-    "openai": {
-      "api_key": "gsk_...",
-      "model": "llama-3.1-70b-versatile",
-      "base_url": "https://api.groq.com/openai/v1"
-    }
-  }
-}
-```
-
-Notes:
-
-- Keep `base_url` pointed at the provider endpoint.
-- Use the model name required by that provider.
-
-## Gemini setup
-
-Gemini uses the `gemini` provider name.
-
-```powershell
-python -m dataviz config set --provider gemini --key AIza...
-python -m dataviz config update --provider gemini --model gemini-1.5-pro
-```
-
-Example config:
-
-```json
-{
-  "default_provider": "gemini",
-  "providers": {
-    "gemini": {
-      "api_key": "AIza...",
-      "model": "gemini-1.5-pro"
-    }
-  }
-}
-```
-
-## Local overrides
-
-To override settings only for the current project, create `.dataviz/config.json`.
-
-Example:
-
-```json
-{
-  "default_provider": "openai",
-  "output": "pdf",
-  "lang": "vi",
-  "tool_gen_mode": "immediate"
-}
-```
-
-## Check your config
-
-```powershell
-python -m dataviz config show
-```
-
-`config show` masks API keys before printing them.
-
-## Practical setup examples
-
-Claude for a project:
-
-```powershell
-python -m dataviz config set --provider claude --key sk-ant-...
-python -m dataviz config update --provider claude --model claude-sonnet-4-6
-```
-
-OpenAI for a project:
-
-```powershell
-python -m dataviz config set --provider openai --key sk-...
-python -m dataviz config update --provider openai --model gpt-4o
-```
-
-Groq through OpenAI-compatible config:
-
-```powershell
-python -m dataviz config set --provider openai --key gsk_...
-python -m dataviz config update --provider openai --base-url https://api.groq.com/openai/v1
-python -m dataviz config update --provider openai --model llama-3.1-70b-versatile
-```
-
-Gemini for a project:
-
-```powershell
-python -m dataviz config set --provider gemini --key AIza...
-python -m dataviz config update --provider gemini --model gemini-1.5-pro
+# Use a lighter model for a faster run
+dataviz sales.csv --provider claude --model claude-haiku-4-5-20251001 --output html --no-tui
 ```
