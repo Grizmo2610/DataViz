@@ -19,16 +19,18 @@ def _altair_available() -> bool:
 
 
 def _base_theme() -> dict[str, Any]:
-    """Shared Altair config for a clean scientific look (IBM Plex / Inter font,
-    light background, subtle grid, no chartjunk)."""
+    """Shared Altair config -- dark "Vision UI" look (Inter font, dark card
+    background, subtle dark grid) matching the project's default HTML theme,
+    so charts blend into the glassmorphism report instead of sitting in a
+    jarring white box."""
     return {
         "config": {
-            "background": "#ffffff",
+            "background": "#0e1637",
             "font": "Inter, 'IBM Plex Sans', system-ui, sans-serif",
             "title": {
                 "fontSize": 14,
                 "fontWeight": 600,
-                "color": "#1a1a2e",
+                "color": "#ffffff",
                 "anchor": "start",
                 "offset": 8,
             },
@@ -36,29 +38,44 @@ def _base_theme() -> dict[str, Any]:
                 "labelFontSize": 11,
                 "titleFontSize": 12,
                 "titleFontWeight": 500,
-                "labelColor": "#555770",
-                "titleColor": "#333350",
-                "gridColor": "#e8e8f0",
-                "domainColor": "#c8c8d8",
-                "tickColor": "#c8c8d8",
+                "labelColor": "#737fa8",
+                "titleColor": "#737fa8",
+                "gridColor": "#151e45",
+                "domainColor": "#151e45",
+                "tickColor": "#151e45",
                 "labelPadding": 6,
             },
             "legend": {
                 "labelFontSize": 11,
                 "titleFontSize": 12,
                 "titleFontWeight": 500,
-                "labelColor": "#555770",
-                "titleColor": "#333350",
+                "labelColor": "#737fa8",
+                "titleColor": "#ffffff",
             },
             "view": {"strokeOpacity": 0},
             "range": {
                 "category": [
-                    "#4361ee", "#e63946", "#2ec4b6", "#f4a261",
-                    "#7b2d8b", "#06a77d", "#e9c46a", "#264653",
+                    "#4299e1", "#00d4aa", "#7b61ff", "#f6ad55",
+                    "#48bb78", "#fc8181", "#e9c46a", "#a78bfa",
                 ],
             },
         }
     }
+
+
+def _accent_gradient(c1: str = "#4299e1", c2: str = "#00d4aa") -> Any:
+    """A soft top-to-bottom linear gradient (accent blue -> teal) for bar/area
+    marks, instead of a single flat fill color -- gives the same smooth,
+    glassy look as the Vision UI reference charts."""
+    import altair as alt
+    return alt.Gradient(
+        gradient="linear",
+        stops=[
+            alt.GradientStop(color=c1, offset=0),
+            alt.GradientStop(color=c2, offset=1),
+        ],
+        x1=0, y1=0, x2=0, y2=1,
+    )
 
 
 def _spec_to_dict(chart: Any) -> dict[str, Any]:
@@ -257,7 +274,10 @@ def plot_histogram(df: pd.DataFrame, col: str) -> dict[str, Any]:
         y=alt.Y("count()", title="Count"),
         tooltip=[alt.Tooltip(f"{col}:Q", bin=alt.Bin(maxbins=40)), "count()"],
     )
-    bars = base.mark_bar(color="#4361ee", opacity=0.75, cornerRadiusTopLeft=2, cornerRadiusTopRight=2)
+    bars = base.mark_bar(
+        color=_accent_gradient(), opacity=0.9,
+        cornerRadiusTopLeft=6, cornerRadiusTopRight=6,
+    )
     chart = bars.properties(title=f"Distribution of {col}")
 
     return {
@@ -304,7 +324,7 @@ def plot_scatter(
 
     chart = (
         alt.Chart(valid)
-        .mark_circle(size=50, opacity=0.65, stroke="#ffffff", strokeWidth=0.5)
+        .mark_circle(size=50, opacity=0.75, stroke="#0e1637", strokeWidth=0.5)
         .encode(**encode_kwargs)
         .properties(title=f"{y} vs {x}")
     )
@@ -337,7 +357,10 @@ def plot_bar(df: pd.DataFrame, x: str, y: str) -> dict[str, Any]:
     valid = df[[x, y]].dropna()
     chart = (
         alt.Chart(valid)
-        .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3, color="#4361ee")
+        .mark_bar(
+            cornerRadiusTopLeft=6, cornerRadiusTopRight=6,
+            color=_accent_gradient(),
+        )
         .encode(
             x=alt.X(f"{x}:N", sort="-y", title=x),
             y=alt.Y(f"mean({y}):Q", title=f"Mean {y}"),
@@ -376,7 +399,7 @@ def plot_line(df: pd.DataFrame, x: str, y: str) -> dict[str, Any]:
 
     line = (
         alt.Chart(valid)
-        .mark_line(color="#4361ee", strokeWidth=2)
+        .mark_line(color="#4299e1", strokeWidth=2.5, interpolate="monotone")
         .encode(
             x=alt.X(f"{x}:{x_type}", title=x),
             y=alt.Y(f"{y}:Q", title=y),
@@ -385,7 +408,7 @@ def plot_line(df: pd.DataFrame, x: str, y: str) -> dict[str, Any]:
     )
     points = (
         alt.Chart(valid)
-        .mark_circle(color="#4361ee", size=30, opacity=0.6)
+        .mark_circle(color="#4299e1", size=30, opacity=0.7)
         .encode(
             x=alt.X(f"{x}:{x_type}"),
             y=alt.Y(f"{y}:Q"),
@@ -481,7 +504,7 @@ def plot_heatmap(df: pd.DataFrame) -> dict[str, Any]:
             y=alt.Y("col_b:N", title=None),
             color=alt.Color(
                 "correlation:Q",
-                scale=alt.Scale(scheme="blueorange", domain=[-1, 1]),
+                scale=alt.Scale(range=["#fc8181", "#151e45", "#00d4aa"], domain=[-1, 0, 1]),
                 title="r",
             ),
             tooltip=[
@@ -499,7 +522,7 @@ def plot_heatmap(df: pd.DataFrame) -> dict[str, Any]:
         color=alt.condition(
             alt.datum.correlation > 0.5,
             alt.value("white"),
-            alt.value("#1a1a2e"),
+            alt.value("#ffffff"),
         ),
     )
 
@@ -553,7 +576,7 @@ def plot_violin(
         chart = (
             alt.Chart(valid)
             .transform_density(col, as_=[col, "density"])
-            .mark_area(orient="horizontal", opacity=0.7, color="#4361ee")
+            .mark_area(orient="horizontal", opacity=0.75, color="#4299e1")
             .encode(
                 y=alt.Y(f"{col}:Q", title=col),
                 x=alt.X("density:Q", stack="center", title="Density", axis=alt.Axis(labels=False, ticks=False)),
@@ -592,7 +615,7 @@ def plot_pie(df: pd.DataFrame, col: str) -> dict[str, Any]:
 
     chart = (
         alt.Chart(counts)
-        .mark_arc(innerRadius=55, outerRadius=110, stroke="#ffffff", strokeWidth=1.5)
+        .mark_arc(innerRadius=55, outerRadius=110, stroke="#0e1637", strokeWidth=1.5)
         .encode(
             theta=alt.Theta("count:Q"),
             color=alt.Color(f"{col}:N", title=col, legend=alt.Legend(orient="right")),

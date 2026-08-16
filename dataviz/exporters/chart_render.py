@@ -97,6 +97,8 @@ def _svg_via_matplotlib(vega_spec: dict[str, Any]) -> str | None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from matplotlib.patches import FancyBboxPatch
+        from matplotlib.colors import LinearSegmentedColormap
     except Exception:  # noqa: BLE001
         return None
 
@@ -110,22 +112,47 @@ def _svg_via_matplotlib(vega_spec: dict[str, Any]) -> str | None:
     title = vega_spec.get("title", "")
     x_field = encoding.get("x", {}).get("field")
     y_field = encoding.get("y", {}).get("field")
-    color = "#4361ee"
+    color = _ACCENT
+    grad = LinearSegmentedColormap.from_list("accent", [_ACCENT, _ACCENT_2])
 
     if not rows or not x_field:
         return None
 
+    def _rounded_bars(ax, values: list[float], positions: list[float], bar_w: float) -> None:
+        """Soft, top-rounded gradient-filled bars (matches the Vision UI
+        reference style) instead of matplotlib's hard-cornered default."""
+        max_v = max(values) if values else 1
+        for pos, v in zip(positions, values):
+            rounding = bar_w * 0.28
+            patch = FancyBboxPatch(
+                (pos - bar_w / 2, 0), bar_w, v,
+                boxstyle=f"round,pad=0,rounding_size={rounding}",
+                linewidth=0, facecolor=grad(_lerp(v, 0, max_v, 0.15, 0.95) if max_v else 0.5),
+                zorder=3,
+            )
+            ax.add_patch(patch)
+        ax.set_xlim(min(positions) - bar_w, max(positions) + bar_w)
+        ax.set_ylim(0, max_v * 1.1 if max_v else 1)
+
     try:
-        fig, ax = plt.subplots(figsize=(6, 3.5))
+        fig, ax = plt.subplots(figsize=(6, 3.5), facecolor=_BG_CARD)
+        ax.set_facecolor(_BG_CARD)
         if mark_type == "bar" and encoding.get("y", {}).get("aggregate") == "count":
             values = [r[x_field] for r in rows if x_field in r]
-            ax.hist(values, bins=min(20, max(5, len(set(values)))), color=color)
-            ax.set_ylabel("Count")
+            if not values:
+                plt.close(fig)
+                return None
+            nbins = min(20, max(5, len(set(values))))
+            counts, edges = np_histogram(values, nbins)
+            centers = [(edges[i] + edges[i + 1]) / 2 for i in range(len(counts))]
+            bar_w = (edges[1] - edges[0]) * 0.92 if len(edges) > 1 else 1
+            _rounded_bars(ax, counts, centers, bar_w)
+            ax.set_ylabel("Count", color=_TEXT_MUTED)
         elif mark_type in ("circle", "point") and y_field:
             xs = [r.get(x_field) for r in rows]
             ys = [r.get(y_field) for r in rows]
-            ax.scatter(xs, ys, alpha=0.65, color=color)
-            ax.set_ylabel(y_field)
+            ax.scatter(xs, ys, alpha=0.8, s=45, color=color, edgecolors=_BG_CARD, linewidths=0.6)
+            ax.set_ylabel(y_field, color=_TEXT_MUTED)
         elif mark_type == "line" and y_field:
             pts = sorted(
                 ((r.get(x_field), r.get(y_field)) for r in rows if x_field in r and y_field in r),
@@ -133,27 +160,51 @@ def _svg_via_matplotlib(vega_spec: dict[str, Any]) -> str | None:
             )
             if pts:
                 xs, ys = zip(*pts)
-                ax.plot(xs, ys, color=color)
-            ax.set_ylabel(y_field)
+                ax.plot(xs, ys, color=color, linewidth=2.5, solid_capstyle="round")
+                ax.fill_between(xs, ys, alpha=0.15, color=color)
+            ax.set_ylabel(y_field, color=_TEXT_MUTED)
         elif mark_type == "bar" and y_field:
-            xs = [r.get(x_field) for r in rows]
-            ys = [r.get(y_field) for r in rows]
-            ax.bar(xs, ys, color=color)
-            ax.set_ylabel(y_field)
+            xs = [str(r.get(x_field)) for r in rows]
+            ys = [r.get(y_field, 0) or 0 for r in rows]
+            positions = list(range(len(xs)))
+            _rounded_bars(ax, ys, positions, 0.6)
+            ax.set_xticks(positions)
+            ax.set_xticklabels(xs)
+            ax.set_ylabel(y_field, color=_TEXT_MUTED)
         else:
             plt.close(fig)
             return None
 
-        ax.set_xlabel(x_field)
+        ax.set_xlabel(x_field, color=_TEXT_MUTED)
         if isinstance(title, str) and title:
-            ax.set_title(title)
+            ax.set_title(title, color=_TEXT_MAIN, fontsize=13, fontweight="600", loc="left")
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(colors=_TEXT_MUTED, labelsize=8)
+        ax.yaxis.grid(True, color=_GRID_LINE, linewidth=0.8)
+        ax.set_axisbelow(True)
         fig.tight_layout()
         buf = io.StringIO()
-        fig.savefig(buf, format="svg")
+        fig.savefig(buf, format="svg", facecolor=_BG_CARD)
         plt.close(fig)
         return buf.getvalue()
     except Exception:  # noqa: BLE001
         return None
+
+
+def np_histogram(values: list[float], nbins: int) -> tuple[list[int], list[float]]:
+    """Tiny dependency-free histogram binner (avoids importing numpy just
+    for this), used to lay out the rounded gradient bars above."""
+    vmin, vmax = min(values), max(values)
+    if vmax == vmin:
+        vmax = vmin + 1
+    width = (vmax - vmin) / nbins
+    counts = [0] * nbins
+    for v in values:
+        idx = min(nbins - 1, int((v - vmin) / width))
+        counts[idx] += 1
+    edges = [vmin + i * width for i in range(nbins + 1)]
+    return counts, edges
 
 
 # --------------------------------------------------------------------------- #
@@ -162,7 +213,16 @@ def _svg_via_matplotlib(vega_spec: dict[str, Any]) -> str | None:
 
 _SVG_W, _SVG_H = 640, 400
 _MARGIN = {"l": 65, "r": 20, "t": 40, "b": 55}
-_COLOR = "#4361ee"
+# Dark "Vision UI" palette, matched to the project's default HTML theme so
+# static (MD/PDF/notebook-fallback) charts look consistent with the
+# interactive Vega charts instead of sitting in a jarring white box.
+_BG_CARD    = "#0e1637"
+_ACCENT     = "#4299e1"
+_ACCENT_2   = "#00d4aa"
+_TEXT_MAIN  = "#ffffff"
+_TEXT_MUTED = "#737fa8"
+_GRID_LINE  = "#151e45"
+_COLOR = _ACCENT
 
 
 def _lerp(v: float, vmin: float, vmax: float, out_min: float, out_max: float) -> float:
@@ -175,31 +235,52 @@ def _svg_header(title: str, w: int = _SVG_W, h: int = _SVG_H) -> list[str]:
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
         f'font-family="Inter, \'IBM Plex Sans\', system-ui, sans-serif">',
-        f'<rect width="{w}" height="{h}" fill="#ffffff"/>',
+        '<defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{_ACCENT}"/>'
+        f'<stop offset="100%" stop-color="{_ACCENT_2}"/>'
+        '</linearGradient></defs>',
+        f'<rect width="{w}" height="{h}" fill="{_BG_CARD}"/>',
     ]
     if title:
         parts.append(
             f'<text x="{w/2:.1f}" y="20" text-anchor="middle" font-size="14" '
-            f'font-weight="600" fill="#1a1a2e">{title}</text>'
+            f'font-weight="600" fill="{_TEXT_MAIN}">{title}</text>'
         )
     return parts
+
+
+def _rounded_top_bar(x: float, y: float, w: float, h: float, r: float = 5) -> str:
+    """A <path> for a bar rounded only at its top two corners (bottom stays
+    flush with the axis) -- softer than a hard-cornered <rect>, matching the
+    Altair marks' cornerRadiusTopLeft/TopRight."""
+    if w <= 0 or h <= 0:
+        return ""
+    r = max(0, min(r, w / 2, h))
+    if r <= 0.5:
+        return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="url(#barGrad)"/>'
+    return (
+        f'<path d="M{x:.1f},{y+h:.1f} L{x:.1f},{y+r:.1f} '
+        f'Q{x:.1f},{y:.1f} {x+r:.1f},{y:.1f} '
+        f'L{x+w-r:.1f},{y:.1f} Q{x+w:.1f},{y:.1f} {x+w:.1f},{y+r:.1f} '
+        f'L{x+w:.1f},{y+h:.1f} Z" fill="url(#barGrad)"/>'
+    )
 
 
 def _svg_axes(plot_w: float, plot_h: float, x_label: str, y_label: str) -> list[str]:
     l, t = _MARGIN["l"], _MARGIN["t"]
     parts = [
-        f'<line x1="{l}" y1="{t+plot_h:.1f}" x2="{l+plot_w:.1f}" y2="{t+plot_h:.1f}" stroke="#c8c8d8"/>',
-        f'<line x1="{l}" y1="{t}" x2="{l}" y2="{t+plot_h:.1f}" stroke="#c8c8d8"/>',
+        f'<line x1="{l}" y1="{t+plot_h:.1f}" x2="{l+plot_w:.1f}" y2="{t+plot_h:.1f}" stroke="{_GRID_LINE}"/>',
+        f'<line x1="{l}" y1="{t}" x2="{l}" y2="{t+plot_h:.1f}" stroke="{_GRID_LINE}"/>',
     ]
     if x_label:
         parts.append(
             f'<text x="{l+plot_w/2:.1f}" y="{t+plot_h+35:.1f}" text-anchor="middle" '
-            f'font-size="11" fill="#555770">{x_label}</text>'
+            f'font-size="11" fill="{_TEXT_MUTED}">{x_label}</text>'
         )
     if y_label:
         cy = t + plot_h / 2
         parts.append(
-            f'<text x="16" y="{cy:.1f}" text-anchor="middle" font-size="11" fill="#555770" '
+            f'<text x="16" y="{cy:.1f}" text-anchor="middle" font-size="11" fill="{_TEXT_MUTED}" '
             f'transform="rotate(-90 16 {cy:.1f})">{y_label}</text>'
         )
     return parts
@@ -249,8 +330,7 @@ def _svg_via_pure_python(vega_spec: dict[str, Any]) -> str | None:
             bar_h = _lerp(c, 0, max_count, 0, plot_h)
             x = l + i * bar_w
             y = t + (plot_h - bar_h)
-            body.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{max(bar_w-1,0):.1f}" '
-                        f'height="{bar_h:.1f}" fill="{_COLOR}" opacity="0.8"/>')
+            body.append(_rounded_top_bar(x, y, max(bar_w - 1, 0), bar_h, r=4))
         body += _svg_axes(plot_w, plot_h, x_field, "Count")
 
     elif mark_type in ("circle", "point") and y_field:
@@ -290,8 +370,7 @@ def _svg_via_pure_python(vega_spec: dict[str, Any]) -> str | None:
             bar_h = _lerp(yv, 0, max_y, 0, plot_h)
             x = l + i * bar_w
             y = t + (plot_h - bar_h)
-            body.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{max(bar_w-2,0):.1f}" '
-                        f'height="{bar_h:.1f}" fill="{_COLOR}"/>')
+            body.append(_rounded_top_bar(x, y, max(bar_w - 2, 0), bar_h, r=4))
         body += _svg_axes(plot_w, plot_h, x_field, y_field)
     else:
         return None
@@ -302,15 +381,21 @@ def _svg_via_pure_python(vega_spec: dict[str, Any]) -> str | None:
 
 
 def _diverging_color(v: float) -> str:
-    """Approximate the 'blueorange' Vega color scheme used by plot_heatmap,
-    for a correlation value in [-1, 1]."""
+    """Approximate the red -> dark-navy -> teal diverging scale used by
+    plot_heatmap (matches _base_theme's dark palette), for a correlation
+    value in [-1, 1]."""
     v = max(-1.0, min(1.0, v))
+    # midpoint (v=0) is the dark grid-line navy; endpoints are red/teal.
+    mid = (0x15, 0x1e, 0x45)
     if v >= 0:
+        end = (0x00, 0xd4, 0xaa)  # teal
         t = v
-        r, g, b = 255 - t * (255 - 230), 255 - t * (255 - 126), 255 - t * (255 - 34)
     else:
+        end = (0xfc, 0x81, 0x81)  # red
         t = -v
-        r, g, b = 255 - t * (255 - 49), 255 - t * (255 - 104), 255 - t * (255 - 142)
+    r = mid[0] + t * (end[0] - mid[0])
+    g = mid[1] + t * (end[1] - mid[1])
+    b = mid[2] + t * (end[2] - mid[2])
     return f"rgb({int(r)},{int(g)},{int(b)})"
 
 
@@ -352,19 +437,18 @@ def _svg_heatmap_pure_python(vega_spec: dict[str, Any]) -> str | None:
             cy = margin["t"] + j * cell_h
             parts.append(f'<rect x="{cx:.1f}" y="{cy:.1f}" width="{cell_w:.1f}" height="{cell_h:.1f}" '
                          f'fill="{_diverging_color(val)}"/>')
-            text_color = "#ffffff" if abs(val) > 0.5 else "#1a1a2e"
             parts.append(f'<text x="{cx+cell_w/2:.1f}" y="{cy+cell_h/2+4:.1f}" text-anchor="middle" '
-                         f'font-size="10" fill="{text_color}">{val:.2f}</text>')
+                         f'font-size="10" fill="{_TEXT_MAIN}">{val:.2f}</text>')
 
     for i, xv in enumerate(xs):
         cx = margin["l"] + i * cell_w + cell_w / 2
         ty = margin["t"] + len(ys) * cell_h + 14
-        parts.append(f'<text x="{cx:.1f}" y="{ty:.1f}" text-anchor="end" font-size="10" fill="#555770" '
+        parts.append(f'<text x="{cx:.1f}" y="{ty:.1f}" text-anchor="end" font-size="10" fill="{_TEXT_MUTED}" '
                      f'transform="rotate(-30 {cx:.1f} {ty:.1f})">{xv}</text>')
     for j, yv in enumerate(ys):
         cy = margin["t"] + j * cell_h + cell_h / 2 + 4
         parts.append(f'<text x="{margin["l"]-8}" y="{cy:.1f}" text-anchor="end" '
-                     f'font-size="10" fill="#555770">{yv}</text>')
+                     f'font-size="10" fill="{_TEXT_MUTED}">{yv}</text>')
 
     parts.append("</svg>")
     return "".join(parts)
