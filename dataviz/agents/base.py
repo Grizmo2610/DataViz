@@ -102,7 +102,7 @@ class BaseAgent(ABC):
             return result
         except Exception as exc:
             elapsed = time.monotonic() - t0
-            log.error("[%s] call_tool ✗ %s  %.3fs  %s: %s\n%s",
+            log.error("[%s] call_tool  %s  %.3fs  %s: %s\n%s",
                       agent, tool_name, elapsed,
                       type(exc).__name__, exc, traceback.format_exc())
             raise
@@ -152,7 +152,7 @@ class BaseAgent(ABC):
             response = self.provider.chat(messages)
         except Exception as exc:
             elapsed = time.monotonic() - t0
-            log.error("[%s] ask_llm  ✗ provider.chat() raised  %.3fs  %s: %s\n%s",
+            log.error("[%s] ask_llm   provider.chat() raised  %.3fs  %s: %s\n%s",
                       agent, elapsed, type(exc).__name__, exc, traceback.format_exc())
             raise LLMAPIError(
                 reason="API_EXCEPTION",
@@ -168,7 +168,7 @@ class BaseAgent(ABC):
                   agent, elapsed, finish, len(content), n_tools)
 
         if not content:
-            log.error("[%s] ask_llm  ✗ empty content  finish=%s  tool_calls=%d  full_response=%s",
+            log.error("[%s] ask_llm   empty content  finish=%s  tool_calls=%d  full_response=%s",
                       agent, finish, n_tools, response)
             raise LLMEmptyResponseError(
                 reason="EMPTY_CONTENT",
@@ -236,7 +236,7 @@ class BaseAgent(ABC):
         except Exception as exc:
             elapsed = time.monotonic() - t0
             log.error(
-                "[%s] ask_llm_with_tools  ✗ provider.chat() raised  %.3fs  %s: %s\n%s",
+                "[%s] ask_llm_with_tools provider.chat() raised  %.3fs  %s: %s\n%s",
                 agent, elapsed, type(exc).__name__, exc, traceback.format_exc(),
             )
             raise LLMAPIError(
@@ -343,7 +343,7 @@ class BaseAgent(ABC):
             if not tool_calls:
                 # Model produced a final answer — return it.
                 log.debug(
-                    "[%s] run_agentic  ✓ final answer  turn=%d  finish=%s  content_len=%d",
+                    "[%s] run_agentic final answer  turn=%d  finish=%s  content_len=%d",
                     agent, turn, finish, len(content),
                 )
                 if not content:
@@ -420,7 +420,7 @@ class BaseAgent(ABC):
 
         # -- Max turns exceeded -----------------------------------------------
         log.error(
-            "[%s] run_agentic  ✗ did not converge in %d turns — aborting.",
+            "[%s] run_agentic did not converge in %d turns — aborting.",
             agent, max_turns,
         )
         raise LLMMaxTurnsError(
