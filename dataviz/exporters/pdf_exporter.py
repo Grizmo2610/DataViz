@@ -14,12 +14,15 @@ _VEGALITE_VERSION = "5"
 
 
 class PdfExporter(BaseExporter):
-    """Render a PDF report via WeasyPrint.
+    """Render a PDF report via Playwright (headless Chromium).
 
     Strategy:
     1. Build a print-optimised HTML (charts converted to inline SVG via Altair's
-       SVG renderer so WeasyPrint doesn't need JavaScript).
-    2. Run WeasyPrint on that HTML → PDF.
+       SVG renderer so the browser doesn't need a vega-embed script to run).
+    2. Run Playwright Chromium → PDF.
+
+    This approach is pure-Python friendly and works on Windows without any
+    native GTK/Pango/GObject libraries (which WeasyPrint required).
     """
 
     def render_section(self, section: dict[str, Any], content: Any) -> str:
@@ -34,8 +37,9 @@ class PdfExporter(BaseExporter):
     ) -> Path:
         """Write the PDF report to *out_dir/report.pdf*.
 
-        Falls back to writing a plain-text placeholder when WeasyPrint is not
-        installed, so the pipeline never hard-crashes on missing optional deps.
+        Primary backend: Playwright (headless Chromium) – works on all platforms.
+        Fallback 1: xhtml2pdf (if installed).
+        Fallback 2: plain-text placeholder so the pipeline never hard-crashes.
         """
         out_path = Path(out_dir)
         out_path.mkdir(parents=True, exist_ok=True)
@@ -44,16 +48,76 @@ class PdfExporter(BaseExporter):
         # Build print HTML first (charts are already inline SVG at this point)
         html_content = self._build_print_html(rendered_sections, **kwargs)
 
-        try:
-            from weasyprint import HTML  # type: ignore[import]
-            HTML(string=html_content, base_url=str(out_path)).write_pdf(str(pdf_path))
-        except ImportError:
-            pdf_path.write_text(
-                "WeasyPrint not installed. Run: pip install weasyprint\n\n" + html_content,
-                encoding="utf-8",
-            )
+        # --- Try Playwright first (preferred, no native deps) ---
+        if self._try_playwright(html_content, pdf_path):
+            return pdf_path
 
+        # --- Fallback: xhtml2pdf ---
+        if self._try_xhtml2pdf(html_content, pdf_path):
+            return pdf_path
+
+        # --- Last resort: write HTML as .pdf placeholder ---
+        pdf_path.write_text(
+            "PDF export failed: no suitable PDF backend found.\n"
+            "Install Playwright (pip install playwright && playwright install chromium) "
+            "or xhtml2pdf (pip install xhtml2pdf).\n\n" + html_content,
+            encoding="utf-8",
+        )
         return pdf_path
+
+    # ------------------------------------------------------------------ #
+    # Backend helpers                                                      #
+    # ------------------------------------------------------------------ #
+
+    def _try_playwright(self, html_content: str, pdf_path: Path) -> bool:
+        """Render PDF with Playwright headless Chromium. Returns True on success."""
+        try:
+            from playwright.sync_api import sync_playwright  # type: ignore[import]
+
+            # Write HTML to a temp file so Playwright can load it with a
+            # file:// URL (needed for local resources / correct base URL).
+            with tempfile.NamedTemporaryFile(
+                suffix=".html", delete=False, mode="w", encoding="utf-8"
+            ) as tmp:
+                tmp.write(html_content)
+                tmp_path = Path(tmp.name)
+
+            try:
+                with sync_playwright() as pw:
+                    browser = pw.chromium.launch(args=["--no-sandbox"])
+                    page = browser.new_page()
+                    page.goto(tmp_path.as_uri(), wait_until="networkidle", timeout=30_000)
+                    page.pdf(
+                        path=str(pdf_path),
+                        format="A4",
+                        margin={
+                            "top": "18mm",
+                            "bottom": "18mm",
+                            "left": "20mm",
+                            "right": "20mm",
+                        },
+                        print_background=True,
+                    )
+                    browser.close()
+            finally:
+                tmp_path.unlink(missing_ok=True)
+
+            return True
+
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _try_xhtml2pdf(self, html_content: str, pdf_path: Path) -> bool:
+        """Render PDF with xhtml2pdf. Returns True on success."""
+        try:
+            from xhtml2pdf import pisa  # type: ignore[import]
+
+            with pdf_path.open("wb") as fh:
+                result = pisa.CreatePDF(html_content, dest=fh)
+            return not result.err
+
+        except Exception:  # noqa: BLE001
+            return False
 
     # ------------------------------------------------------------------ #
     # Internal helpers                                                     #
@@ -112,11 +176,6 @@ class PdfExporter(BaseExporter):
     @page {{
       size: A4;
       margin: 18mm 20mm 18mm 20mm;
-      @bottom-center {{
-        content: "Page " counter(page) " of " counter(pages);
-        font-size: 9pt;
-        color: var(--muted);
-      }}
     }}
     /* Header */
     .report-header {{
@@ -301,16 +360,7 @@ class PdfExporter(BaseExporter):
 </html>"""
 
     def _inject_svg_charts(self, html: str, charts: list[dict[str, Any]]) -> str:
-        """Replace vega-embed placeholder divs with inline SVG in the HTML body.
-
-        HtmlExporter emits each chart as an empty
-        ``<div id="vg_{chart_id}" class="vega-container"></div>`` that a
-        <script> fills in client-side via vega-embed. WeasyPrint doesn't run
-        JavaScript, so for PDF we replace that *whole* placeholder element
-        with the rendered SVG -- replacing only a fragment of it (e.g. just
-        the id attribute) would leave the tag unbalanced and corrupt the
-        rest of the document.
-        """
+        """Replace vega-embed placeholder divs with inline SVG in the HTML body."""
         if not charts:
             return html
 

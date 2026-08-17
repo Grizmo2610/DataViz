@@ -35,6 +35,7 @@ source .venv/bin/activate
 
 ```bash
 pip install -e .
+playwright install chromium
 ```
 
 ### 4. Verify the installation
