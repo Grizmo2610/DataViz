@@ -28,7 +28,7 @@ def write_summary(schema: dict[str, Any], stats: dict[str, Any], lang: str = "en
     columns = schema.get("columns", [])
     dtypes = [c.get("dtype", "") for c in columns]
     n_numeric = sum(1 for d in dtypes if "int" in d or "float" in d)
-    n_cat     = sum(1 for d in dtypes if d in ("object", "string", "category"))
+    n_cat     = sum(1 for d in dtypes if d in ("object", "str", "string", "category"))
     n_date    = sum(1 for d in dtypes if "datetime" in d)
 
     # Null summary from stats columns

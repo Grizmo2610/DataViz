@@ -28,6 +28,8 @@ dependencies = [
   "plotly>=5.0",
   # Notebook exporter
   "nbformat>=5.9",
+  # MCP server
+  "mcp>=1.2",
 ]
 
 [project.urls]
@@ -42,6 +44,7 @@ dev = [
 
 [project.scripts]
 dataviz = "dataviz.cli:main"
+dataviz-mcp = "dataviz.mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["dataviz"]

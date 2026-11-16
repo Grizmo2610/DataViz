@@ -42,6 +42,7 @@ It integrates with LLM providers (Claude, OpenAI, Gemini) to generate intelligen
 - **Multi-format Output** — Interactive HTML, printable PDF (A4), plain Markdown, or Jupyter Notebook.
 - **LLM Narrative** — Integrates Claude (Anthropic), OpenAI, and Gemini to generate natural-language analysis sections.
 - **Multi-file Join** — Infers join keys automatically or accepts manual specification; supports inner, left, and outer joins.
+- **MCP Server & Skill** — Exposes analysis, charts, and report export as MCP tools (`dataviz-mcp`), with a ready-made skill for AI assistants. No LLM API key needed.
 - **Session & Cache** — Persists analysis results for reuse; caches parsed files to speed up subsequent runs.
 
 ---
@@ -53,6 +54,7 @@ It integrates with LLM providers (Claude, OpenAI, Gemini) to generate intelligen
 | [Installation & Quickstart](docs/getting-started.md) | Prerequisites, install steps, and your first run |
 | [Configuration](docs/configuration.md) | Setting up LLM providers and config files |
 | [Usage Guide](docs/usage.md) | Full command reference with examples |
+| [MCP Server & Skill](docs/mcp.md) | Use DataViz from AI assistants through MCP tools and a skill |
 | [Troubleshooting](docs/troubleshooting.md) | Common errors and fixes |
 | [Design Overview](design/README.md) | Architecture and system design |
 | [Roadmap](ROADMAP.md) | Planned features |

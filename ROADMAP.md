@@ -85,3 +85,17 @@ Branch: `phase-5-pypi`
 
 Definition of done:
 - The project has a complete tutorial README and release metadata
+
+## Phase 6 - MCP and Skill
+
+Branch: `feat/mcp-and-skill`
+
+- [x] MCP server wrapping the registered tools (`dataviz-mcp`)
+- [x] Agent skill (`skills/dataviz/SKILL.md`)
+- [x] Documentation (`docs/mcp.md`)
+- [x] Unit tests for the MCP server
+- [ ] Publish the skill and MCP config examples in the release notes
+
+Definition of done:
+- `pytest tests/test_mcp_server.py` passes on `mcp` 1.x and 2.x
+- A stdio MCP client can list the tools and export a report
