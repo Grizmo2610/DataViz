@@ -124,7 +124,7 @@ def auto_select_charts(
     """
     columns = schema.get("columns", [])
     numerics = [c["name"] for c in columns if "int" in c["dtype"] or "float" in c["dtype"]]
-    categoricals = [c["name"] for c in columns if c["dtype"] in ("object", "string", "category", "bool")]
+    categoricals = [c["name"] for c in columns if c["dtype"] in ("object", "str", "string", "category", "bool")]
     dates = [c["name"] for c in columns if "datetime" in c["dtype"]]
 
     selected: list[dict[str, Any]] = []
