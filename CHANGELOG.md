@@ -2,6 +2,19 @@
 
 All notable changes to DataViz CLI will be documented here.
 
+## [Unreleased]
+
+### Added
+- MCP server exposing `inspect_dataset`, `analyze_dataset`, `suggest_charts`, `render_chart`, and `export_report`; runs without an LLM API key and supports `mcp` 1.x and 2.x. New console command `dataviz-mcp`. (`dataviz/mcp_server.py`, `pyproject.toml`)
+- Agent skill describing when and how to use the MCP tools, with CLI fallback. (`skills/dataviz/SKILL.md`)
+- MCP server and skill documentation. (`docs/mcp.md`, `README.md`)
+- Tests for the MCP server. (`tests/test_mcp_server.py`)
+
+### Fixed
+- String columns were not treated as categorical on pandas 3, where the dtype is reported as `str`, so no boxplot was suggested and the summary counted zero categorical columns. (`dataviz/tools/viz_tools.py`, `dataviz/tools/report_tools.py`)
+
+---
+
 ## [0.1.2-beta]
 
 ### Fixed
